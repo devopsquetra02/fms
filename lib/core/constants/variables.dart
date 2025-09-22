@@ -5,14 +5,17 @@ class Variables {
   static const String imageBaseUrl = '$baseUrl/public/storage//';
 
   // API endpoints helper methods
-  static String getProfileEndpoint(String userId) => '$baseUrl/get-user/$userId';
-  static String getJobHistoryEndpoint(String userId) => '$baseUrl/get-job-by-user/$userId';
+  static String getProfileEndpoint(String userId) =>
+      '$baseUrl/get-user/$userId';
+  static String getJobHistoryEndpoint(String userId) =>
+      '$baseUrl/get-job-by-user/$userId';
 
   // API endpoints
   static const String loginEndpoint = '$baseUrl/login';
   static const String logoutEndpoint = '$baseUrl/logout';
   static const String getJobEndpoint = '$baseUrl/get-job';
   static const String driverGetJobEndpoint = '$baseUrl/driver-get-job';
+  static const String driverGetJob = '$baseUrl/driver-get-job?';
 
   // Shared Preferences keys
   static const String prefApiKey = 'apiKey';

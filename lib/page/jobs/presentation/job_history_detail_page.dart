@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fms/data/models/response/get_job_history__response_model.dart';
 
+import '../widget/chip_job_detail.dart';
+
 class JobHistoryDetailPage extends StatelessWidget {
   final Data job;
   const JobHistoryDetailPage({super.key, required this.job});
@@ -64,13 +66,13 @@ class JobHistoryDetailPage extends StatelessWidget {
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  _Chip(label: 'ID: ${job.jobId ?? 'N/A'}'),
-                                  _Chip(
+                                  ChipJobDetail(label: 'ID: ${job.jobId ?? 'N/A'}'),
+                                  ChipJobDetail(
                                     label: 'Status: Completed',
                                     color: Colors.green,
                                   ),
                                   if (job.jobDate != null)
-                                    _Chip(
+                                    ChipJobDetail(
                                       label:
                                           'Date: ${job.jobDate!.toString().split(' ')[0]}',
                                     ),
@@ -340,33 +342,6 @@ class JobHistoryDetailPage extends StatelessWidget {
       default:
         return 'Other';
     }
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String label;
-  final Color? color;
-  const _Chip({required this.label, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color:
-            color?.withValues(alpha: 0.1) ??
-            theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
   }
 }
 

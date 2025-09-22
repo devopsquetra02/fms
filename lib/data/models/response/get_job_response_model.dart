@@ -31,7 +31,7 @@ class Data {
   final dynamic userId;
   final int? customerId;
   final int? typeJob;
-  final int? createdBy;
+  final String? createdBy;
   final DateTime? jobDate;
   final DateTime? createdAt;
   final dynamic assignWhen;

@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.querta.fms"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "29.0.13599879"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true

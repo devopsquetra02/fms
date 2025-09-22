@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:fms/data/datasource/driver_get_job_datasource.dart';
+import 'package:fms/data/models/response/driver_get_job_response_model.dart';
 import '../../../../page/profile/presentation/profile_page.dart';
+import '../widget/chip_job_detail.dart';
 
 class JobDetailsPage extends StatelessWidget {
   final dynamic job;
-  const JobDetailsPage({super.key, required this.job});
+  final bool isOngoing;
+  //is ongoing = false
+  const JobDetailsPage({super.key, required this.job, this.isOngoing = false});
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +70,9 @@ class JobDetailsPage extends StatelessWidget {
                 // Header Card
                 Card(
                   elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -77,22 +84,43 @@ class JobDetailsPage extends StatelessWidget {
                             color: theme.colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(Icons.assignment_turned_in, color: theme.colorScheme.primary),
+                          child: Icon(
+                            Icons.assignment_turned_in,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(job.jobName ?? 'Job', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                              Text(
+                                job.jobName ?? 'Job',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(height: 6),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  _Chip(label: 'ID: ${job.jobId ?? 'N/A'}'),
-                                  _Chip(label: 'Status: Open'),
-                                  if (job.jobDate != null) _Chip(label: 'Date: ${job.jobDate!.toString().split(' ')[0]}'),
+                                  ChipJobDetail(
+                                    label: 'ID: ${job.jobId ?? 'N/A'}',
+                                  ),
+                                  ChipJobDetail(
+                                    color: isOngoing
+                                        ? Colors.orange
+                                        : Colors.grey,
+                                    label: isOngoing
+                                        ? 'Status: Ongoing'
+                                        : 'Status: Open',
+                                  ),
+                                  if (job.jobDate != null)
+                                    ChipJobDetail(
+                                      label:
+                                          'Date: ${job.jobDate!.toString().split(' ')[0]}',
+                                    ),
                                 ],
                               ),
                             ],
@@ -108,7 +136,9 @@ class JobDetailsPage extends StatelessWidget {
                 // Customer Information
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -116,20 +146,37 @@ class JobDetailsPage extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.person, color: theme.colorScheme.primary),
+                            Icon(
+                              Icons.person,
+                              color: theme.colorScheme.primary,
+                            ),
                             const SizedBox(width: 8),
-                            Text('Customer', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                            Text(
+                              'Customer',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
-                        Text(job.customerName ?? 'N/A', style: theme.textTheme.bodyMedium),
+                        Text(
+                          job.customerName ?? 'N/A',
+                          style: theme.textTheme.bodyMedium,
+                        ),
                         if (job.phoneNumber != null) ...[
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.phone, color: theme.colorScheme.primary),
+                              Icon(
+                                Icons.phone,
+                                color: theme.colorScheme.primary,
+                              ),
                               const SizedBox(width: 8),
-                              Text(job.phoneNumber!, style: theme.textTheme.bodyMedium),
+                              Text(
+                                job.phoneNumber!,
+                                style: theme.textTheme.bodyMedium,
+                              ),
                             ],
                           ),
                         ],
@@ -143,7 +190,9 @@ class JobDetailsPage extends StatelessWidget {
                 // Address
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -153,21 +202,33 @@ class JobDetailsPage extends StatelessWidget {
                           children: [
                             Icon(Icons.place, color: theme.colorScheme.primary),
                             const SizedBox(width: 8),
-                            Text('Address', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                            Text(
+                              'Address',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
-                        Text(job.address ?? 'N/A', style: theme.textTheme.bodyMedium),
+                        Text(
+                          job.address ?? 'N/A',
+                          style: theme.textTheme.bodyMedium,
+                        ),
                         const SizedBox(height: 8),
                         TextButton.icon(
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Open map action not implemented')),
+                              const SnackBar(
+                                content: Text(
+                                  'Open map action not implemented',
+                                ),
+                              ),
                             );
                           },
                           icon: const Icon(Icons.map_outlined),
                           label: const Text('Open in Map'),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -178,7 +239,9 @@ class JobDetailsPage extends StatelessWidget {
                 // Job Information
                 Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -186,16 +249,33 @@ class JobDetailsPage extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.info_outline, color: theme.colorScheme.primary),
+                            Icon(
+                              Icons.info_outline,
+                              color: theme.colorScheme.primary,
+                            ),
                             const SizedBox(width: 8),
-                            Text('Job Information', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                            Text(
+                              'Job Information',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 10),
-                        _InfoRow(label: 'Job Type', value: _getJobTypeString(job.typeJob)),
-                        _InfoRow(label: 'Created By', value: job.createdBy?.toString() ?? 'N/A'),
+                        _InfoRow(
+                          label: 'Job Type',
+                          value: _getJobTypeString(job.typeJob),
+                        ),
+                        _InfoRow(
+                          label: 'Created By',
+                          value: job.createdBy?.toString() ?? 'N/A',
+                        ),
                         if (job.createdAt != null)
-                          _InfoRow(label: 'Created At', value: job.createdAt!.toString().split(' ')[0]),
+                          _InfoRow(
+                            label: 'Created At',
+                            value: job.createdAt!.toString().split(' ')[0],
+                          ),
                       ],
                     ),
                   ),
@@ -217,25 +297,29 @@ class JobDetailsPage extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Navigate action not implemented')),
+                      const SnackBar(
+                        content: Text('Navigate action not implemented'),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.navigation_outlined),
                   label: const Text('Navigate'),
-                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Job started')),
-                    );
+                    isOngoing ? _finishJob(context) : _startJob(context);
                   },
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Start Job'),
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                  label: Text(isOngoing ? 'Finish Job' : 'Start Job'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
                 ),
               ),
             ],
@@ -257,27 +341,50 @@ class JobDetailsPage extends StatelessWidget {
         return 'Other';
     }
   }
-}
 
-class _Chip extends StatelessWidget {
-  final String label;
-  const _Chip({required this.label});
+  Future<void> _startJob(BuildContext context) async {
+    final jobId = job.jobId as int?;
+    if (jobId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Job ID tidak ditemukan')));
+      return;
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-      ),
+    // Tampilkan loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      final datasource = DriverGetJobDatasource();
+      final DriverGetJobResponseModel response = await datasource.driverGetJob(
+        jobId: jobId,
+      );
+
+      if (context.mounted) {
+        Navigator.of(context).pop(); // close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Success Driver Get The Job'),
+          ),
+        );
+        // Kembali ke halaman sebelumnya dan minta refresh
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop(); // close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memulai job: ${e.toString()}')),
+        );
+      }
+    }
   }
+
+  Future<void> _finishJob(BuildContext context) async {}
 }
 
 class _InfoRow extends StatelessWidget {
@@ -294,8 +401,18 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
