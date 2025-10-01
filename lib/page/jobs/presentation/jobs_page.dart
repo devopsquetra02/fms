@@ -3,6 +3,7 @@ import 'package:fms/data/datasource/get_job_datasource.dart';
 import 'package:fms/data/datasource/get_job_history_datasource.dart';
 import 'package:fms/data/models/response/get_job_response_model.dart';
 import 'package:fms/page/jobs/presentation/job_details_page.dart';
+import 'package:fms/data/datasource/get_job_ongoing_datasource.dart';
 
 import '../../../data/models/response/get_job_history__response_model.dart'
     as history;
@@ -20,14 +21,19 @@ class _JobsPageState extends State<JobsPage>
   late TabController _tabController;
   bool _isLoadingAllJobs = true;
   bool _isLoadingHistoryJobs = true;
+  bool _isLoadingOngoingJobs = true;
   GetJobResponseModel? _allJobsResponse;
   history.GetJobHistoryResponseModel? _historyJobsResponse;
+  GetJobResponseModel? _ongoingJobsResponse;
   String? _errorAllJobs;
   String? _errorHistoryJobs;
+  String? _errorOngoingJobs;
 
   final GetJobDatasource _getJobDatasource = GetJobDatasource();
   final GetJobHistoryDatasource _getJobHistoryDatasource =
       GetJobHistoryDatasource();
+  final GetJobOngoingDatasource _getJobOngoingDatasource =
+      GetJobOngoingDatasource();
 
   Future<void> _fetchAllJobs() async {
     try {
@@ -69,8 +75,32 @@ class _JobsPageState extends State<JobsPage>
     }
   }
 
+  Future<void> _fetchOngoingJobs() async {
+    try {
+      if (mounted) {
+        setState(() {
+          _isLoadingOngoingJobs = true;
+          _errorOngoingJobs = null;
+        });
+      }
+      _ongoingJobsResponse = await _getJobOngoingDatasource.getOngoingJobs();
+    } catch (e) {
+      _errorOngoingJobs = e.toString();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingOngoingJobs = false;
+        });
+      }
+    }
+  }
+
   Future<void> _refresh() async {
-    await Future.wait([_fetchAllJobs(), _fetchHistoryJobs()]);
+    await Future.wait([
+      _fetchAllJobs(),
+      _fetchOngoingJobs(),
+      _fetchHistoryJobs(),
+    ]);
   }
 
   @override
@@ -78,6 +108,7 @@ class _JobsPageState extends State<JobsPage>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _fetchAllJobs();
+    _fetchOngoingJobs();
     _fetchHistoryJobs();
   }
 
@@ -94,10 +125,10 @@ class _JobsPageState extends State<JobsPage>
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Activity',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
+        // title: const Text(
+        //   'Activity',
+        //   style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        // ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.black,
@@ -272,14 +303,14 @@ class _JobsPageState extends State<JobsPage>
   }
 
   Widget _getOngoingJob() {
-    if (_isLoadingHistoryJobs) {
+    if (_isLoadingOngoingJobs) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_errorHistoryJobs != null) {
-      return Center(child: Text('Error: $_errorHistoryJobs'));
+    if (_errorOngoingJobs != null) {
+      return Center(child: Text('Error: $_errorOngoingJobs'));
     }
-    if (_historyJobsResponse?.data == null ||
-        _historyJobsResponse!.data!.isEmpty) {
+    if (_ongoingJobsResponse?.data == null ||
+        _ongoingJobsResponse!.data!.isEmpty) {
       return const Center(child: Text('No ongoing jobs found'));
     }
     return RefreshIndicator(
@@ -287,18 +318,22 @@ class _JobsPageState extends State<JobsPage>
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
-        itemCount: _historyJobsResponse!.data!.length,
+        itemCount: _ongoingJobsResponse!.data!.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          final job = _historyJobsResponse!.data![index];
+          final job = _ongoingJobsResponse!.data![index];
           return InkWell(
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => JobHistoryDetailPage(job: job),
+                  builder: (context) =>
+                      JobDetailsPage(job: job, isOngoing: true),
                 ),
               );
+              if (result == true) {
+                _refresh();
+              }
             },
             child: Card(
               child: Padding(
@@ -400,14 +435,17 @@ class _JobsPageState extends State<JobsPage>
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   JobDetailsPage(job: job, isOngoing: true),
                             ),
                           );
+                          if (result == true) {
+                            _refresh();
+                          }
                         },
                         child: const Text('DETAILS'),
                       ),

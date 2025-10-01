@@ -19,7 +19,7 @@ class GetJobDatasource {
       Variables.getJobEndpoint,
     ).replace(queryParameters: {'x-key': apiKey});
     final response = await http.get(uri);
-    log(response.statusCode.toString(), name: 'GetJobDatasource', level: 800);
+    log(response.statusCode.toString(), name: 'GetAllJobDatasource', level: 800);
     if (response.statusCode == 200) {
       // log(response.statusCode.toString(), name: 'GetJobDatasource', level: 800);
       return GetJobResponseModel.fromJson(response.body);

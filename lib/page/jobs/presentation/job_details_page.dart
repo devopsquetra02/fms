@@ -1,18 +1,42 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:fms/data/datasource/driver_get_job_datasource.dart';
-import 'package:fms/data/models/response/driver_get_job_response_model.dart';
-import '../../../../page/profile/presentation/profile_page.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../../core/permissions/permission_helper.dart';
+import '../../../data/datasource/finish_job_datasource.dart';
+import '../../profile/presentation/profile_page.dart';
 import '../widget/chip_job_detail.dart';
 
-class JobDetailsPage extends StatelessWidget {
+import 'package:fms/data/datasource/driver_get_job_datasource.dart';
+import 'package:fms/data/models/response/driver_get_job_response_model.dart';
+
+class JobDetailsPage extends StatefulWidget {
   final dynamic job;
   final bool isOngoing;
   //is ongoing = false
   const JobDetailsPage({super.key, required this.job, this.isOngoing = false});
+  @override
+  State<JobDetailsPage> createState() => _JobDetailsPageState();
+}
+
+class _JobDetailsPageState extends State<JobDetailsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-prompt upload when opening an ongoing job (only once)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.isOngoing) {
+        _finishJob(context);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final job = widget.job;
+    final isOngoing = widget.isOngoing;
     return Scaffold(
       appBar: AppBar(
         title: Text(job.jobName ?? 'Job Details'),
@@ -343,7 +367,7 @@ class JobDetailsPage extends StatelessWidget {
   }
 
   Future<void> _startJob(BuildContext context) async {
-    final jobId = job.jobId as int?;
+    final jobId = widget.job.jobId as int?;
     if (jobId == null) {
       ScaffoldMessenger.of(
         context,
@@ -384,7 +408,68 @@ class JobDetailsPage extends StatelessWidget {
     }
   }
 
-  Future<void> _finishJob(BuildContext context) async {}
+  Future<void> _finishJob(BuildContext context) async {
+    final jobId = widget.job.jobId as int?;
+    if (jobId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Job ID tidak ditemukan')));
+      return;
+    }
+
+    final granted = await AppPermission.ensurePhotosPermission(context);
+    if (!granted) return;
+
+    final picker = ImagePicker();
+    final images = await picker.pickMultiImage(
+      imageQuality: 85,
+      maxWidth: 1600,
+    );
+
+    if (images.isEmpty || images.length < 2) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Minimal pilih 2 foto')));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final List<String> imagesBase64 = [];
+      for (final x in images) {
+        final bytes = await x.readAsBytes();
+        imagesBase64.add(base64Encode(bytes));
+      }
+
+      final datasource = FinishJobDatasource();
+      final response = await datasource.finishJob(
+        jobId: jobId,
+        imagesBase64: imagesBase64,
+      );
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Berhasil menyelesaikan job'),
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyelesaikan job: ${e.toString()}')),
+        );
+      }
+    }
+  }
 }
 
 class _InfoRow extends StatelessWidget {
