@@ -14,6 +14,7 @@ class TraxrootObjectStatusModel {
   final DateTime? updatedAt;
   final int? satellites;
   final double? accuracy;
+  final int? iconId;
 
   const TraxrootObjectStatusModel({
     this.id,
@@ -29,6 +30,7 @@ class TraxrootObjectStatusModel {
     this.updatedAt,
     this.satellites,
     this.accuracy,
+    this.iconId,
   });
 
   GeoPoint? get geoPoint =>
@@ -50,6 +52,40 @@ class TraxrootObjectStatusModel {
       iconUrl: icon,
       subtitle: subtitle.isEmpty ? null : subtitle,
       data: this,
+    );
+  }
+
+  TraxrootObjectStatusModel copyWith({
+    int? id,
+    String? name,
+    String? trackerId,
+    double? latitude,
+    double? longitude,
+    double? speed,
+    double? course,
+    double? altitude,
+    String? status,
+    String? address,
+    DateTime? updatedAt,
+    int? satellites,
+    double? accuracy,
+    int? iconId,
+  }) {
+    return TraxrootObjectStatusModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      trackerId: trackerId ?? this.trackerId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      speed: speed ?? this.speed,
+      course: course ?? this.course,
+      altitude: altitude ?? this.altitude,
+      status: status ?? this.status,
+      address: address ?? this.address,
+      updatedAt: updatedAt ?? this.updatedAt,
+      satellites: satellites ?? this.satellites,
+      accuracy: accuracy ?? this.accuracy,
+      iconId: iconId ?? this.iconId,
     );
   }
 
@@ -133,6 +169,14 @@ class TraxrootObjectStatusModel {
       updatedAt: _parseDate(map['UpdatedOn'] ?? map['updatedOn'] ?? map['time']),
       satellites: _parseInt(map['Sat'] ?? map['sat'] ?? map['Satellites'] ?? map['satellites']),
       accuracy: _parseDouble(map['Accuracy'] ?? map['accuracy']),
+      iconId: _parseInt(
+        map['IconId'] ??
+            map['iconId'] ??
+            map['IconID'] ??
+            map['iconID'] ??
+            map['iconid'] ??
+            map['icon_id'],
+      ),
     );
   }
 }

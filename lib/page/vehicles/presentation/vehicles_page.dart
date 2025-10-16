@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fms/core/widgets/object_status_bottom_sheet.dart';
 import 'package:fms/data/datasource/traxroot_datasource.dart';
+import 'package:fms/data/models/traxroot_icon_model.dart';
+import 'package:fms/data/models/traxroot_object_model.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 import 'package:fms/page/vehicles/presentation/vehicle_tracking_page.dart';
 
@@ -15,7 +17,9 @@ class _VehiclesPageState extends State<VehiclesPage> {
   final _objectsDatasource = TraxrootObjectsDatasource(TraxrootAuthDatasource());
 
   bool _loading = false;
-  List<TraxrootObjectStatusModel> _objects = const [];
+  List<TraxrootObjectModel> _objects = const [];
+  Map<int, TraxrootIconModel> _iconsById = const {};
+  int? _loadingObjectId;
 
   @override
   void initState() {
@@ -30,12 +34,32 @@ class _VehiclesPageState extends State<VehiclesPage> {
     });
 
     try {
-      final objects = await _objectsDatasource.getAllObjectsStatus();
+      final objects = await _objectsDatasource.getObjects();
+      final icons = await _objectsDatasource.getObjectIcons();
+      final iconMap = <int, TraxrootIconModel>{};
+      for (final icon in icons) {
+        final id = icon.id;
+        if (id != null) {
+          iconMap[id] = icon;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _objects = objects;
+        _iconsById = iconMap;
         _loading = false;
       });
+      if (iconMap.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          for (final icon in iconMap.values) {
+            final url = icon.url;
+            if (url != null && url.isNotEmpty) {
+              precacheImage(NetworkImage(url), context);
+            }
+          }
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -63,86 +87,45 @@ class _VehiclesPageState extends State<VehiclesPage> {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final vehicle = _objects[index];
-                final hasLocation = vehicle.geoPoint != null;
-                final status = vehicle.status ?? 'Unknown';
-                final updatedAt = vehicle.updatedAt?.toLocal();
-                final updatedLabel = updatedAt != null
-                    ? '${updatedAt.year}-${updatedAt.month.toString().padLeft(2, '0')}-${updatedAt.day.toString().padLeft(2, '0')} ${updatedAt.hour.toString().padLeft(2, '0')}:${updatedAt.minute.toString().padLeft(2, '0')}'
-                    : null;
-
-                final isActive = (status.toLowerCase().contains('active') || status.toLowerCase().contains('online'));
+                final iconId = vehicle.iconId;
+                final iconUrl = iconId != null ? _iconsById[iconId]?.url : null;
+                final subtitle = vehicle.main?.comment;
+                final isBusy = _loadingObjectId != null && vehicle.id == _loadingObjectId;
 
                 return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                vehicle.name ?? 'Object ${vehicle.id ?? index + 1}',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: (isActive ? Colors.green : Colors.orange).withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              child: Text(
-                                status,
-                                style: TextStyle(
-                                  color: isActive ? Colors.green.shade700 : Colors.orange.shade700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        if (vehicle.address != null && vehicle.address!.isNotEmpty)
-                          Text(vehicle.address!, style: Theme.of(context).textTheme.bodyMedium),
-                        if (vehicle.speed != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text('Speed: ${vehicle.speed!.toStringAsFixed(1)} km/h'),
-                          ),
-                        if (updatedLabel != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text('Updated: $updatedLabel', style: Theme.of(context).textTheme.bodySmall),
-                          ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: !hasLocation || vehicle.id == null
-                                  ? null
-                                  : () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => VehicleTrackingPage(
-                                            vehicle: vehicle,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                              icon: const Icon(Icons.near_me_outlined),
-                              label: const Text('TRACK'),
-                            ),
-                            const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              onPressed: () => _showVehicleSummary(vehicle),
-                              icon: const Icon(Icons.info_outline),
-                              label: const Text('DETAIL'),
-                            ),
-                          ],
-                        ),
-                      ],
+                  child: ListTile(
+                    leading: _VehicleIcon(url: iconUrl),
+                    title: Text(
+                      vehicle.name ?? 'Object ${vehicle.id ?? index + 1}',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
+                    subtitle: subtitle != null && subtitle.isNotEmpty
+                        ? Text(
+                            subtitle,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          )
+                        : null,
+                    trailing: isBusy
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: 'Track',
+                                onPressed: vehicle.id == null ? null : () => _openVehicleTracking(vehicle),
+                                icon: const Icon(Icons.near_me_outlined),
+                              ),
+                              IconButton(
+                                tooltip: 'Detail',
+                                onPressed: vehicle.id == null ? null : () => _showVehicleSummary(vehicle),
+                                icon: const Icon(Icons.info_outline),
+                              ),
+                            ],
+                          ),
                   ),
                 );
               },
@@ -150,13 +133,106 @@ class _VehiclesPageState extends State<VehiclesPage> {
     );
   }
 
-  void _showVehicleSummary(TraxrootObjectStatusModel vehicle) {
+  Future<void> _showVehicleSummary(TraxrootObjectModel vehicle) async {
+    final status = await _fetchObjectStatus(vehicle);
+    if (!mounted || status == null) {
+      return;
+    }
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
-      builder: (_) => ObjectStatusBottomSheet(status: vehicle),
+      builder: (_) => ObjectStatusBottomSheet(status: status),
+    );
+  }
+
+  Future<void> _openVehicleTracking(TraxrootObjectModel vehicle) async {
+    final status = await _fetchObjectStatus(vehicle);
+    if (!mounted || status == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VehicleTrackingPage(
+          vehicle: status,
+          iconUrl: vehicle.iconId != null ? _iconsById[vehicle.iconId!]?.url : null,
+        ),
+      ),
+    );
+  }
+
+  Future<TraxrootObjectStatusModel?> _fetchObjectStatus(
+    TraxrootObjectModel vehicle,
+  ) async {
+    final objectId = vehicle.id;
+
+    if (objectId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ID kendaraan tidak tersedia.')),
+      );
+      return null;
+    }
+
+    if (!mounted) {
+      return null;
+    }
+    setState(() {
+      _loadingObjectId = objectId;
+    });
+
+    TraxrootObjectStatusModel? status;
+    try {
+      status = await _objectsDatasource.getLatestPoint(objectId: objectId);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal memuat detail kendaraan.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (_loadingObjectId == objectId) {
+            _loadingObjectId = null;
+          }
+        });
+      }
+    }
+
+    if (status != null) {
+      return status;
+    }
+
+    return TraxrootObjectStatusModel(
+      id: vehicle.id,
+      name: vehicle.name,
+      latitude: vehicle.latitude,
+      longitude: vehicle.longitude,
+      address: vehicle.address,
+    );
+  }
+}
+
+class _VehicleIcon extends StatelessWidget {
+  const _VehicleIcon({required this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null || url!.isEmpty) {
+      return const CircleAvatar(child: Icon(Icons.directions_car));
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.network(
+        url!,
+        width: 25,
+        height: 25,
+        // fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const CircleAvatar(child: Icon(Icons.directions_car)),
+      ),
     );
   }
 }

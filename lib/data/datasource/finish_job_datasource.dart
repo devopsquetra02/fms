@@ -11,6 +11,7 @@ class FinishJobDatasource {
   Future<FinishJobResponseModel> finishJob({
     required int jobId,
     required List<String> imagesBase64,
+    String? notes,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString(Variables.prefApiKey);
@@ -31,6 +32,7 @@ class FinishJobDatasource {
       body: jsonEncode({
         'job_id': jobId,
         'images': imagesBase64,
+        'notes': notes ?? '',
       }),
     );
 

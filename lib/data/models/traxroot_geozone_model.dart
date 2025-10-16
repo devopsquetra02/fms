@@ -24,6 +24,19 @@ class TraxrootGeozoneModel {
   });
 
   factory TraxrootGeozoneModel.fromMap(Map<String, dynamic> map) {
+    int? _toInt(dynamic value) {
+      if (value is int) {
+        return value;
+      }
+      if (value is num) {
+        return value.toInt();
+      }
+      if (value is String) {
+        return int.tryParse(value);
+      }
+      return null;
+    }
+
     return TraxrootGeozoneModel(
       id: map['id'] as int?,
       name: map['name'] as String?,
@@ -35,9 +48,9 @@ class TraxrootGeozoneModel {
               Map<String, dynamic>.from(map['style'] as Map),
             ),
       flags: map['flags'] as String?,
-      radius: map['radius'] as int?,
-      maxSpeed: map['maxSpeed'] as int?,
-      iconId: map['iconId'] as int?,
+      radius: _toInt(map['radius']),
+      maxSpeed: _toInt(map['maxSpeed']),
+      iconId: _toInt(map['iconId']),
     );
   }
 

@@ -8,6 +8,7 @@ import '../../core/constants/variables.dart';
 import '../models/traxroot_driver_model.dart';
 import '../models/traxroot_geozone_model.dart';
 import '../models/traxroot_icon_model.dart';
+import '../models/traxroot_object_model.dart';
 import '../models/traxroot_object_status_model.dart';
 
 class TraxrootAuthDatasource {
@@ -19,7 +20,9 @@ class TraxrootAuthDatasource {
 
       if (cachedToken != null && expiryMillis != null) {
         final expiry = DateTime.fromMillisecondsSinceEpoch(expiryMillis);
-        if (DateTime.now().isBefore(expiry.subtract(const Duration(minutes: 5)))) {
+        if (DateTime.now().isBefore(
+          expiry.subtract(const Duration(minutes: 5)),
+        )) {
           return cachedToken;
         }
       }
@@ -72,7 +75,10 @@ class TraxrootAuthDatasource {
     final expiry = DateTime.now().add(Duration(seconds: expiresInSeconds));
 
     await prefs.setString(Variables.prefTraxrootToken, token);
-    await prefs.setInt(Variables.prefTraxrootTokenExpiry, expiry.millisecondsSinceEpoch);
+    await prefs.setInt(
+      Variables.prefTraxrootTokenExpiry,
+      expiry.millisecondsSinceEpoch,
+    );
 
     return token;
   }
@@ -83,7 +89,9 @@ class TraxrootObjectsDatasource {
 
   final TraxrootAuthDatasource _authDatasource;
 
-  Future<TraxrootObjectStatusModel> getObjectStatus({required int objectId}) async {
+  Future<TraxrootObjectStatusModel> getObjectStatus({
+    required int objectId,
+  }) async {
     final uri = Uri.parse(Variables.getTraxrootObjectStatusEndpoint(objectId));
     final response = await _authorizedGet(uri);
 
@@ -98,7 +106,10 @@ class TraxrootObjectsDatasource {
       throw Exception('Failed to fetch object status');
     }
 
-    final decoded = jsonDecode(response.body);
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot object status response');
+    }
     final map = _extractSingleStatus(decoded);
     return TraxrootObjectStatusModel.fromMap(map);
   }
@@ -119,18 +130,221 @@ class TraxrootObjectsDatasource {
       throw Exception('Failed to fetch objects status list');
     }
 
-    final decoded = jsonDecode(response.body);
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot objects status response');
+    }
     final list = _extractStatusList(decoded);
     if (list.isEmpty) {
-      log('Traxroot objects status list empty', name: 'TraxrootObjectsDatasource.getAll', level: 900);
+      log(
+        'Traxroot objects status list empty',
+        name: 'TraxrootObjectsDatasource.getAll',
+        level: 900,
+      );
       return const [];
     }
     return list.map(TraxrootObjectStatusModel.fromMap).toList();
   }
 
+  Future<TraxrootObjectStatusModel?> getLatestPoint({
+    required int objectId,
+  }) async {
+    final uri = Uri.parse('${Variables.traxrootObjectsStatusEndpoint}/$objectId');
+    final response = await _authorizedGet(uri);
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getLatestPoint',
+      level: 800,
+    );
+
+    if (response.statusCode != 200) {
+      log(
+        response.body,
+        name: 'TraxrootObjectsDatasource.getLatestPoint',
+        level: 1200,
+      );
+      throw Exception('Failed to fetch object latest point');
+    }
+
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot object status response');
+    }
+
+    final list = _extractStatusList(decoded);
+    if (list.isEmpty) {
+      return null;
+    }
+
+    return TraxrootObjectStatusModel.fromMap(list.first);
+  }
+
+  Future<List<TraxrootObjectModel>> getObjects() async {
+    final uri = Uri.parse(Variables.traxrootObjectsEndpoint);
+    final response = await _authorizedGet(uri);
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getObjects',
+      level: 800,
+    );
+
+    if (response.statusCode != 200) {
+      log(
+        response.body,
+        name: 'TraxrootObjectsDatasource.getObjects',
+        level: 1200,
+      );
+      throw Exception('Failed to fetch Traxroot objects');
+    }
+
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot objects response');
+    }
+
+    final list = _normalizeDynamicList(decoded);
+    if (list.isEmpty) {
+      return const [];
+    }
+
+    return list.map(TraxrootObjectModel.fromMap).toList();
+  }
+
+  Future<List<TraxrootIconModel>> getObjectIcons() async {
+    final uri = Uri.parse(Variables.traxrootObjectIconsEndpoint);
+    final response = await _authorizedGet(uri);
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getObjectIcons',
+      level: 800,
+    );
+
+    if (response.statusCode != 200) {
+      log(
+        response.body,
+        name: 'TraxrootObjectsDatasource.getObjectIcons',
+        level: 1200,
+      );
+      throw Exception('Failed to fetch Traxroot object icons');
+    }
+
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot object icons response');
+    }
+
+    final list = _normalizeDynamicList(decoded);
+    if (list.isEmpty) {
+      return const [];
+    }
+
+    return list.map(TraxrootIconModel.fromMap).toList();
+  }
+
+  Future<List<TraxrootDriverModel>> getDrivers() async {
+    final uri = Uri.parse(Variables.traxrootDriversEndpoint);
+    final response = await _authorizedGet(uri);
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getDrivers',
+      level: 800,
+    );
+
+    if (response.statusCode != 200) {
+      log(
+        response.body,
+        name: 'TraxrootObjectsDatasource.getDrivers',
+        level: 1200,
+      );
+      throw Exception('Failed to fetch Traxroot drivers');
+    }
+
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot drivers response');
+    }
+
+    final list = _normalizeDynamicList(decoded);
+    if (list.isEmpty) {
+      return const [];
+    }
+
+    return list.map((map) => TraxrootDriverModel.fromMap(map)).toList();
+  }
+
+  Future<List<TraxrootGeozoneModel>> getGeozones() async {
+    final uri = Uri.parse(Variables.traxrootGeozonesEndpoint);
+    final response = await _authorizedGet(uri);
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getGeozones',
+      level: 800,
+    );
+
+    if (response.statusCode != 200) {
+      log(
+        response.body,
+        name: 'TraxrootObjectsDatasource.getGeozones',
+        level: 1200,
+      );
+      throw Exception('Failed to fetch Traxroot geozones');
+    }
+
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot geozones response');
+    }
+
+    final list = _normalizeDynamicList(decoded);
+    if (list.isEmpty) {
+      return const [];
+    }
+
+    return list.map(TraxrootGeozoneModel.fromMap).toList();
+  }
+
+  Future<List<TraxrootIconModel>> getGeozoneIcons() async {
+    final uri = Uri.parse(Variables.traxrootGeozoneIconsEndpoint);
+    final response = await _authorizedGet(uri);
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getGeozoneIcons',
+      level: 800,
+    );
+
+    if (response.statusCode != 200) {
+      log(
+        response.body,
+        name: 'TraxrootObjectsDatasource.getGeozoneIcons',
+        level: 1200,
+      );
+      throw Exception('Failed to fetch Traxroot geozone icons');
+    }
+
+    final decoded = _decodeTraxrootBody(response.body);
+    if (decoded == null) {
+      throw Exception('Empty Traxroot geozone icons response');
+    }
+
+    final list = _normalizeDynamicList(decoded);
+    if (list.isEmpty) {
+      return const [];
+    }
+
+    return list.map(TraxrootIconModel.fromMap).toList();
+  }
+
   Future<http.Response> _authorizedGet(Uri uri) async {
     Future<http.Response> performRequest({required bool forceRefresh}) async {
-      final token = await _authDatasource.getAccessToken(forceRefresh: forceRefresh);
+      final token = await _authDatasource.getAccessToken(
+        forceRefresh: forceRefresh,
+      );
       return http.get(
         uri,
         headers: {
@@ -211,10 +425,9 @@ dynamic _unwrapTraxrootPayload(dynamic value) {
     final trimmed = value.trim();
     if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
         (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-      try {
-        return _unwrapTraxrootPayload(jsonDecode(trimmed));
-      } catch (_) {
-        return value;
+      final decoded = _decodeLooseJson(trimmed);
+      if (decoded != null) {
+        return _unwrapTraxrootPayload(decoded);
       }
     }
     return value;
@@ -297,11 +510,9 @@ List<Map<String, dynamic>> _normalizeDynamicList(dynamic value) {
     final trimmed = value.trim();
     if ((trimmed.startsWith('[') && trimmed.endsWith(']')) ||
         (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
-      try {
-        final decoded = jsonDecode(trimmed);
+      final decoded = _decodeLooseJson(trimmed);
+      if (decoded != null) {
         return _normalizeDynamicList(decoded);
-      } catch (_) {
-        return const [];
       }
     }
     return const [];
@@ -331,11 +542,9 @@ Map<String, dynamic>? _normalizeDynamicMap(dynamic value) {
     final trimmed = value.trim();
     if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
         (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-      try {
-        final decoded = jsonDecode(trimmed);
+      final decoded = _decodeLooseJson(trimmed);
+      if (decoded != null) {
         return _normalizeDynamicMap(decoded);
-      } catch (_) {
-        return null;
       }
     }
     return null;
@@ -351,6 +560,93 @@ Map<String, dynamic>? _normalizeDynamicMap(dynamic value) {
   return null;
 }
 
+dynamic _decodeLooseJson(String source) {
+  final attempt = _attemptJsonDecode(source);
+  if (attempt != null) {
+    return attempt;
+  }
+  final repaired = _repairLooseJson(source);
+  if (repaired == null) {
+    return null;
+  }
+  return _attemptJsonDecode(repaired);
+}
+
+dynamic _attemptJsonDecode(String source) {
+  try {
+    return jsonDecode(source);
+  } catch (_) {
+    return null;
+  }
+}
+
+String? _repairLooseJson(String input) {
+  var result = input;
+  var changed = false;
+
+  final singleQuotedKeys = RegExp(r"(?<=\{|,)(\s*)'([^']+)'\s*:(\s*)");
+  result = result.replaceAllMapped(singleQuotedKeys, (match) {
+    changed = true;
+    final leading = match.group(1) ?? '';
+    final key = match.group(2) ?? '';
+    final trailing = match.group(3) ?? '';
+    final escapedKey = key.replaceAll('"', r'\"');
+    return '$leading"$escapedKey":$trailing';
+  });
+
+  final bareKeys = RegExp(r"(?<=\{|,)(\s*)([A-Za-z0-9_]+)\s*:(\s*)");
+  result = result.replaceAllMapped(bareKeys, (match) {
+    changed = true;
+    final leading = match.group(1) ?? '';
+    final key = match.group(2) ?? '';
+    final trailing = match.group(3) ?? '';
+    return '$leading"$key":$trailing';
+  });
+
+  final singleQuotedValues = RegExp(r"(?<=[:\[,]\s*)'([^']*)'");
+  result = result.replaceAllMapped(singleQuotedValues, (match) {
+    changed = true;
+    final value = match.group(1)?.replaceAll('"', r'\"') ?? '';
+    return '"$value"';
+  });
+
+  final boolValues = RegExp(r":\s*(True|False)(?=[,\}\]])");
+  result = result.replaceAllMapped(boolValues, (match) {
+    changed = true;
+    return ':${match.group(1)!.toLowerCase()}';
+  });
+
+  final nullValues = RegExp(r":\s*(Null|NULL)(?=[,\}\]])");
+  result = result.replaceAllMapped(nullValues, (_) {
+    changed = true;
+    return ':null';
+  });
+
+  final nonNumeric = RegExp(r":\s*(NaN|nan|Infinity|-Infinity)(?=[,\}\]])");
+  result = result.replaceAllMapped(nonNumeric, (_) {
+    changed = true;
+    return ':null';
+  });
+
+  return changed ? result : null;
+}
+
+dynamic _decodeTraxrootBody(String body) {
+  final trimmed = body.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  final decoded = _decodeLooseJson(trimmed);
+  if (decoded != null) {
+    return decoded;
+  }
+  try {
+    return jsonDecode(trimmed);
+  } catch (_) {
+    return null;
+  }
+}
+
 List<Map<String, dynamic>> _mergePointsWithStats(Map<String, dynamic> payload) {
   final pointsRaw = payload['points'] ?? payload['Points'];
   final points = _normalizeDynamicList(pointsRaw);
@@ -359,7 +655,10 @@ List<Map<String, dynamic>> _mergePointsWithStats(Map<String, dynamic> payload) {
   }
 
   final statsRaw =
-      payload['stat'] ?? payload['Stat'] ?? payload['stats'] ?? payload['Stats'];
+      payload['stat'] ??
+      payload['Stat'] ??
+      payload['stats'] ??
+      payload['Stats'];
   final stats = _normalizeDynamicList(statsRaw);
   final statsByTracker = <String, Map<String, dynamic>>{};
   for (final stat in stats) {
@@ -427,32 +726,61 @@ String? _asNonEmptyString(dynamic value) {
 }
 
 class TraxrootInternalDatasource {
-  Future<List<TraxrootDriverModel>> getDrivers() async {
-    final response = await http.get(Uri.parse(Variables.traxrootInternalDriversEndpoint));
+  TraxrootInternalDatasource([TraxrootAuthDatasource? authDatasource])
+    : _authDatasource = authDatasource ?? TraxrootAuthDatasource();
 
-    log('status: ${response.statusCode}', name: 'TraxrootInternalDatasource.getDrivers', level: 800);
+  final TraxrootAuthDatasource _authDatasource;
+
+  Future<List<TraxrootDriverModel>> getDrivers() async {
+    final response = await _authorizedGet(
+      Uri.parse(Variables.traxrootDriversEndpoint),
+    );
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootInternalDatasource.getDrivers',
+      level: 800,
+    );
 
     if (response.statusCode != 200) {
-      log(response.body, name: 'TraxrootInternalDatasource.getDrivers', level: 1200);
+      log(
+        response.body,
+        name: 'TraxrootInternalDatasource.getDrivers',
+        level: 1200,
+      );
       throw Exception('Failed to fetch drivers');
     }
 
     final decoded = jsonDecode(response.body);
     if (decoded is List) {
       return decoded
-          .map((e) => TraxrootDriverModel.fromMap(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) => TraxrootDriverModel.fromMap(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
           .toList();
     }
     throw Exception('Unexpected drivers response');
   }
 
   Future<TraxrootDriverModel> getDriverById(int driverId) async {
-    final response = await http.get(Uri.parse(Variables.traxrootInternalDriverByIdEndpoint(driverId)));
+    final response = await _authorizedGet(
+      Uri.parse(Variables.getTraxrootDriverEndpoint(driverId)),
+    );
 
-    log('status: ${response.statusCode}', name: 'TraxrootInternalDatasource.getDriverById', level: 800);
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootInternalDatasource.getDriverById',
+      level: 800,
+    );
 
     if (response.statusCode != 200) {
-      log(response.body, name: 'TraxrootInternalDatasource.getDriverById', level: 1200);
+      log(
+        response.body,
+        name: 'TraxrootInternalDatasource.getDriverById',
+        level: 1200,
+      );
       throw Exception('Failed to fetch driver $driverId');
     }
 
@@ -464,40 +792,94 @@ class TraxrootInternalDatasource {
   }
 
   Future<List<TraxrootGeozoneModel>> getGeozones() async {
-    final response = await http.get(Uri.parse(Variables.traxrootInternalGeozonesEndpoint));
+    final response = await _authorizedGet(
+      Uri.parse(Variables.traxrootGeozonesEndpoint),
+    );
 
-    log('status: ${response.statusCode}', name: 'TraxrootInternalDatasource.getGeozones', level: 800);
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootInternalDatasource.getGeozones',
+      level: 800,
+    );
 
     if (response.statusCode != 200) {
-      log(response.body, name: 'TraxrootInternalDatasource.getGeozones', level: 1200);
+      log(
+        response.body,
+        name: 'TraxrootInternalDatasource.getGeozones',
+        level: 1200,
+      );
       throw Exception('Failed to fetch geozones');
     }
 
     final decoded = jsonDecode(response.body);
     if (decoded is List) {
       return decoded
-          .map((e) => TraxrootGeozoneModel.fromMap(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) => TraxrootGeozoneModel.fromMap(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
           .toList();
     }
     throw Exception('Unexpected geozones response');
   }
 
   Future<List<TraxrootIconModel>> getGeozoneIcons() async {
-    final response = await http.get(Uri.parse(Variables.traxrootInternalGeozoneIconsEndpoint));
+    final response = await _authorizedGet(
+      Uri.parse(Variables.traxrootGeozoneIconsEndpoint),
+    );
 
-    log('status: ${response.statusCode}', name: 'TraxrootInternalDatasource.getGeozoneIcons', level: 800);
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootInternalDatasource.getGeozoneIcons',
+      level: 800,
+    );
 
     if (response.statusCode != 200) {
-      log(response.body, name: 'TraxrootInternalDatasource.getGeozoneIcons', level: 1200);
+      log(
+        response.body,
+        name: 'TraxrootInternalDatasource.getGeozoneIcons',
+        level: 1200,
+      );
       throw Exception('Failed to fetch geozone icons');
     }
 
     final decoded = jsonDecode(response.body);
     if (decoded is List) {
       return decoded
-          .map((e) => TraxrootIconModel.fromMap(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) =>
+                TraxrootIconModel.fromMap(Map<String, dynamic>.from(e as Map)),
+          )
           .toList();
     }
     throw Exception('Unexpected geozone icons response');
+  }
+
+  Future<http.Response> _authorizedGet(Uri uri) async {
+    Future<http.Response> performRequest({required bool forceRefresh}) async {
+      final token = await _authDatasource.getAccessToken(
+        forceRefresh: forceRefresh,
+      );
+      return http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+    }
+
+    var response = await performRequest(forceRefresh: false);
+    if (response.statusCode == 401) {
+      log(
+        'Unauthorized response for ${uri.path}. Refreshing token and retrying.',
+        name: 'TraxrootInternalDatasource',
+        level: 900,
+      );
+      await _authDatasource.clearCachedToken();
+      response = await performRequest(forceRefresh: true);
+    }
+    return response;
   }
 }

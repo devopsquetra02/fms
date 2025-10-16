@@ -87,14 +87,14 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                         _shareJobDetails();
                       },
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.report),
-                      title: const Text('Report'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        // Implement report functionality
-                      },
-                    ),
+                    // ListTile(
+                    //   leading: const Icon(Icons.report),
+                    //   title: const Text('Report'),
+                    //   onTap: () {
+                    //     Navigator.pop(context);
+                    //     // Implement report functionality
+                    //   },
+                    // ),
                   ],
                 ),
               );
@@ -332,30 +332,74 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _navigateToJob(context),
-                  icon: const Icon(Icons.navigation_outlined),
-                  label: const Text('Navigate'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
+              if (isOngoing)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Postpone feature coming soon'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.schedule),
+                        label: const Text('Postpone'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Cancel feature coming soon'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.cancel_outlined),
+                        label: const Text('Cancel'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    isOngoing ? _finishJob(context) : _startJob(context);
-                  },
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text(isOngoing ? 'Finish Job' : 'Start Job'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+              if (isOngoing) const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _navigateToJob(context),
+                      icon: const Icon(Icons.navigation_outlined),
+                      label: const Text('Navigate'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        isOngoing ? _finishJob(context) : _startJob(context);
+                      },
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: Text(isOngoing ? 'Finish Job' : 'Start Job'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -427,7 +471,11 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         Navigator.of(context).pop(); // close loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response.message ?? 'Success Driver Get The Job'),
+            backgroundColor: Colors.green,
+            content: Text(
+              response.message ?? 'Success Driver Get The Job',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         );
         // Kembali ke halaman sebelumnya dan minta refresh
@@ -485,6 +533,17 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       return;
     }
 
+    final notesResult = await _askForNotes(context);
+    if (!mounted) return;
+    if (notesResult == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Finish job canceled')));
+      return;
+    }
+
+    final trimmedNotes = notesResult.trim();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -502,6 +561,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       final response = await datasource.finishJob(
         jobId: jobId,
         imagesBase64: imagesBase64,
+        notes: trimmedNotes.isEmpty ? null : trimmedNotes,
       );
 
       if (context.mounted) {
@@ -672,6 +732,39 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           ),
         )) ??
         false;
+  }
+
+  Future<String?> _askForNotes(BuildContext context) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Job Notes'),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Add an optional note for this job',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(null),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(''),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _navigateToJob(BuildContext context) async {

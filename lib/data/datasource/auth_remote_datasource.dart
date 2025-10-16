@@ -44,6 +44,43 @@ class AuthRemoteDataSource {
     }
   }
 
+  Future<String> forgotPassword({required String email}) async {
+    final uri = Uri.parse(Variables.forgotPasswordEndpoint);
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(<String, dynamic>{'email': email}),
+    );
+
+    log(
+      response.statusCode.toString(),
+      name: 'AuthRemoteDataSource.forgotPassword',
+      level: 800,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      try {
+        final decoded = json.decode(response.body) as Map<String, dynamic>;
+        final message = decoded['message'] ?? decoded['Message'];
+        if (message != null && message.toString().isNotEmpty) {
+          return message.toString();
+        }
+      } catch (_) {}
+      return 'Reset password email sent.';
+    } else {
+      log(response.body, name: 'AuthRemoteDataSource.forgotPassword', level: 1200);
+      String message = 'Failed to send reset password (${response.statusCode})';
+      try {
+        final decoded = json.decode(response.body) as Map<String, dynamic>;
+        if (decoded['message'] != null) message = decoded['message'].toString();
+      } catch (_) {}
+      throw Exception(message);
+    }
+  }
+
   //logout to remove all data from shared preferences
   Future<String> logout() async {
     final prefs = await SharedPreferences.getInstance();

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 // import '../../../l10n/app_localizations.dart'0;
 import '../widget/auth_button.dart';
 import '../widget/auth_text_field.dart';
+import '../../../data/datasource/auth_remote_datasource.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -17,6 +18,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _emailController = TextEditingController();
   bool _isLoading = false;
   bool _resetSent = false;
+  final _dataSource = AuthRemoteDataSource();
 
   @override
   void dispose() {
@@ -24,20 +26,43 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     super.dispose();
   }
 
-  void _handleResetPassword() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // Form is valid, handle reset password request
-      setState(() {
-        _isLoading = true;
-      });
+  Future<void> _handleResetPassword() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
-      // Simulate network request
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          _isLoading = false;
-          _resetSent = true;
-        });
+    setState(() {
+      _isLoading = true;
+    });
+
+    final email = _emailController.text.trim();
+
+    try {
+      final message = await _dataSource.forgotPassword(email: email);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _resetSent = true;
       });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      final error = e.toString();
+      var message = error.startsWith('Exception: ')
+          ? error.substring('Exception: '.length)
+          : error;
+      if (message.trim().isEmpty) {
+        message = 'Failed to send reset password';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -151,7 +176,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Remember your password?', style: theme.textTheme.bodyMedium),
+              Text(
+                'Remember your password?',
+                style: theme.textTheme.bodyMedium,
+              ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();

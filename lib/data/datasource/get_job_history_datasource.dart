@@ -32,7 +32,7 @@ class GetJobHistoryDatasource {
       name: 'GetJobFinishedHistoryDatasource',
       level: 800,
     );
-    log(response.body, name: 'GetJobFinishedHistoryDatasource', level: 800);
+    // log(response.body, name: 'GetJobFinishedHistoryDatasource', level: 800);
 
     if (response.statusCode == 200) {
       return GetJobHistoryResponseModel.fromJson(response.body);

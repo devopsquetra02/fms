@@ -148,18 +148,39 @@ class _JobsPageState extends State<JobsPage>
     );
   }
 
+  Widget _buildRefreshableMessage(String message) {
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      triggerMode: RefreshIndicatorTriggerMode.anywhere,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: constraints.maxHeight,
+                child: Center(child: Text(message)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Widget _getAllJob() {
     if (_isLoadingAllJobs) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_errorAllJobs != null) {
-      return Center(child: Text('Error: $_errorAllJobs'));
+      return _buildRefreshableMessage('Error: $_errorAllJobs');
     }
     if (_allJobsResponse?.data == null || _allJobsResponse!.data!.isEmpty) {
-      return const Center(child: Text('No jobs found'));
+      return _buildRefreshableMessage('No jobs found');
     }
     return RefreshIndicator(
       onRefresh: _refresh,
+      triggerMode: RefreshIndicatorTriggerMode.anywhere,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
@@ -308,14 +329,15 @@ class _JobsPageState extends State<JobsPage>
       return const Center(child: CircularProgressIndicator());
     }
     if (_errorOngoingJobs != null) {
-      return Center(child: Text('Error: $_errorOngoingJobs'));
+      return _buildRefreshableMessage('Error: $_errorOngoingJobs');
     }
     if (_ongoingJobsResponse?.data == null ||
         _ongoingJobsResponse!.data!.isEmpty) {
-      return const Center(child: Text('No ongoing jobs found'));
+      return _buildRefreshableMessage('No ongoing jobs found');
     }
     return RefreshIndicator(
       onRefresh: _refresh,
+      triggerMode: RefreshIndicatorTriggerMode.anywhere,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
@@ -466,14 +488,15 @@ class _JobsPageState extends State<JobsPage>
       return const Center(child: CircularProgressIndicator());
     }
     if (_errorHistoryJobs != null) {
-      return Center(child: Text('Error: $_errorHistoryJobs'));
+      return _buildRefreshableMessage('Error: $_errorHistoryJobs');
     }
     if (_historyJobsResponse?.data == null ||
         _historyJobsResponse!.data!.isEmpty) {
-      return const Center(child: Text('No history jobs found'));
+      return _buildRefreshableMessage('No history jobs found');
     }
     return RefreshIndicator(
       onRefresh: _refresh,
+      triggerMode: RefreshIndicatorTriggerMode.anywhere,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),

@@ -7,7 +7,8 @@ import '../../../data/models/traxroot_object_status_model.dart';
 
 class VehicleTrackingPage extends StatefulWidget {
   final TraxrootObjectStatusModel vehicle;
-  const VehicleTrackingPage({super.key, required this.vehicle});
+  final String? iconUrl;
+  const VehicleTrackingPage({super.key, required this.vehicle, this.iconUrl});
 
   @override
   State<VehicleTrackingPage> createState() => _VehicleTrackingPageState();
@@ -60,7 +61,7 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
   @override
   Widget build(BuildContext context) {
     final vehicle = _vehicle;
-    final marker = vehicle?.toMarker();
+    final marker = vehicle?.toMarker(icon: widget.iconUrl);
     final hasLocation = marker != null;
 
     return Scaffold(
@@ -94,9 +95,15 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
                     ),
             ),
             const SizedBox(height: 12),
+            //card display
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.directions_car)),
+                leading: SizedBox(
+                  width: 20,
+                  child: Center(
+                    child: _VehicleAvatar(iconUrl: widget.iconUrl),
+                  ),
+                ),
                 title: Text(vehicle?.name ?? 'Vehicle'),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,6 +147,29 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
       ),
       builder: (_) => ObjectStatusBottomSheet(
         status: vehicle,
+      ),
+    );
+  }
+}
+
+class _VehicleAvatar extends StatelessWidget {
+  const _VehicleAvatar({required this.iconUrl});
+
+  final String? iconUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    if (iconUrl == null || iconUrl!.isEmpty) {
+      return const CircleAvatar(child: Icon(Icons.directions_car));
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: Image.network(
+        iconUrl!,
+        width: 30,
+        height: 30,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const CircleAvatar(child: Icon(Icons.directions_car)),
       ),
     );
   }

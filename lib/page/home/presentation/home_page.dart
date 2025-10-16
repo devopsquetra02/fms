@@ -7,6 +7,7 @@ import 'package:fms/data/datasource/get_job_ongoing_datasource.dart';
 import 'package:fms/data/datasource/get_job_history_datasource.dart';
 import 'package:fms/data/datasource/traxroot_datasource.dart';
 import 'package:fms/data/models/response/get_job_response_model.dart';
+import 'package:fms/data/models/traxroot_icon_model.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 import 'package:fms/page/vehicles/presentation/vehicle_tracking_page.dart';
 import 'package:fms/data/models/response/get_job_history__response_model.dart'
@@ -28,6 +29,7 @@ class _HomeTabState extends State<HomeTab> {
   List<MapMarkerModel> _markers = const [];
   List<MapZoneModel> _zones = const [];
   List<TraxrootObjectStatusModel> _objects = const [];
+  Map<int, String> _iconUrlByObjectId = const {};
   GetJobResponseModel? _allJobsResponse;
   GetJobResponseModel? _ongoingJobsResponse;
   history.GetJobHistoryResponseModel? _completedJobsResponse;
@@ -48,21 +50,47 @@ class _HomeTabState extends State<HomeTab> {
     });
 
     try {
-      final objectsFuture = _objectsDatasource.getAllObjectsStatus();
+      final statusesFuture = _objectsDatasource.getAllObjectsStatus();
+      final objectsFuture = _objectsDatasource.getObjects();
+      final iconsFuture = _objectsDatasource.getObjectIcons();
       final geozonesFuture = _internalDatasource.getGeozones();
       final allJobsFuture = GetJobDatasource().getJob();
       final ongoingJobsFuture = GetJobOngoingDatasource().getOngoingJobs();
       final completedJobsFuture = GetJobHistoryDatasource().getJobHistory();
 
+      final statuses = await statusesFuture;
       final objects = await objectsFuture;
+      final icons = await iconsFuture;
       final geozones = await geozonesFuture;
       final allJobs = await allJobsFuture;
       final ongoingJobs = await ongoingJobsFuture;
       final completedJobs = await completedJobsFuture;
 
-      final markers = <MapMarkerModel>[];
+      final iconsById = <int, TraxrootIconModel>{
+        for (final icon in icons)
+          if (icon.id != null) icon.id!: icon,
+      };
+
+      final iconUrlByObjectId = <int, String>{};
       for (final object in objects) {
-        final marker = object.toMarker();
+        final objectId = object.id;
+        if (objectId == null) {
+          continue;
+        }
+        final iconId = object.iconId;
+        if (iconId == null) {
+          continue;
+        }
+        final iconUrl = iconsById[iconId]?.url;
+        if (iconUrl != null && iconUrl.isNotEmpty) {
+          iconUrlByObjectId[objectId] = iconUrl;
+        }
+      }
+
+      final markers = <MapMarkerModel>[];
+      for (final status in statuses) {
+        final iconUrl = status.id != null ? iconUrlByObjectId[status.id!] : null;
+        final marker = status.toMarker(icon: iconUrl);
         if (marker != null) {
           markers.add(marker);
         }
@@ -80,12 +108,23 @@ class _HomeTabState extends State<HomeTab> {
       setState(() {
         _markers = markers;
         _zones = zones;
-        _objects = objects;
+        _objects = statuses;
+        _iconUrlByObjectId = iconUrlByObjectId;
         _allJobsResponse = allJobs;
         _ongoingJobsResponse = ongoingJobs;
         _completedJobsResponse = completedJobs;
         _loading = false;
       });
+
+      if (iconUrlByObjectId.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final precacheTargets = iconUrlByObjectId.values.toSet();
+          for (final url in precacheTargets) {
+            precacheImage(NetworkImage(url), context);
+          }
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -210,7 +249,10 @@ class _HomeTabState extends State<HomeTab> {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => VehicleTrackingPage(vehicle: status!),
+                    builder: (_) => VehicleTrackingPage(
+                      vehicle: status!,
+                      iconUrl: status.id != null ? _iconUrlByObjectId[status.id!] : null,
+                    ),
                   ),
                 );
               }
