@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/variables.dart';
+import '../../core/network/http_error_handler.dart';
 import '../models/response/cancel_job_response_model.dart';
 
 class CancelJobDatasource {
@@ -33,6 +34,7 @@ class CancelJobDatasource {
     if (response.statusCode == 200) {
       return CancelJobResponseModel.fromJson(response.body);
     } else {
+      HttpErrorHandler.handleResponse(response.statusCode, response.body);
       log(response.body, name: 'CancelJobDatasource', level: 1200);
       throw Exception('Failed to cancel job');
     }

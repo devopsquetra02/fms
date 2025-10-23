@@ -1,418 +1,116 @@
 import 'package:flutter/material.dart';
-import 'package:fms/core/models/geo.dart';
+import 'package:get/get.dart';
 import 'package:fms/core/widgets/adaptive_map.dart';
 import 'package:fms/core/widgets/object_status_bottom_sheet.dart';
-import 'package:fms/data/datasource/get_job_datasource.dart';
-import 'package:fms/data/datasource/get_job_ongoing_datasource.dart';
-import 'package:fms/data/datasource/get_job_history_datasource.dart';
-import 'package:fms/data/datasource/traxroot_datasource.dart';
-import 'package:fms/data/models/response/get_job_response_model.dart';
-import 'package:fms/data/models/traxroot_icon_model.dart';
-import 'package:fms/data/models/traxroot_object_status_model.dart';
+import 'package:fms/controllers/home_controller.dart';
 import 'package:fms/page/vehicles/presentation/vehicle_tracking_page.dart';
-import 'package:fms/data/models/response/get_job_history__response_model.dart'
-    as history;
 
-class HomeTab extends StatefulWidget {
+class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
   @override
-  State<HomeTab> createState() => _HomeTabState();
-}
-
-class _HomeTabState extends State<HomeTab> {
-  final _objectsDatasource = TraxrootObjectsDatasource(TraxrootAuthDatasource());
-  final _internalDatasource = TraxrootInternalDatasource();
-
-  bool _loading = false;
-  String? _error;
-  List<MapMarkerModel> _markers = const [];
-  List<MapZoneModel> _zones = const [];
-  List<TraxrootObjectStatusModel> _objects = const [];
-  Map<int, String> _iconUrlByObjectId = const {};
-  GetJobResponseModel? _allJobsResponse;
-  GetJobResponseModel? _ongoingJobsResponse;
-  history.GetJobHistoryResponseModel? _completedJobsResponse;
-
-  static const GeoPoint _defaultCenter = GeoPoint(14.5995, 120.9842); // Manila fallback
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      final statusesFuture = _objectsDatasource.getAllObjectsStatus();
-      final objectsFuture = _objectsDatasource.getObjects();
-      final iconsFuture = _objectsDatasource.getObjectIcons();
-      final geozonesFuture = _internalDatasource.getGeozones();
-      final allJobsFuture = GetJobDatasource().getJob();
-      final ongoingJobsFuture = GetJobOngoingDatasource().getOngoingJobs();
-      final completedJobsFuture = GetJobHistoryDatasource().getJobHistory();
-
-      final statuses = await statusesFuture;
-      final objects = await objectsFuture;
-      final icons = await iconsFuture;
-      final geozones = await geozonesFuture;
-      final allJobs = await allJobsFuture;
-      final ongoingJobs = await ongoingJobsFuture;
-      final completedJobs = await completedJobsFuture;
-
-      final iconsById = <int, TraxrootIconModel>{
-        for (final icon in icons)
-          if (icon.id != null) icon.id!: icon,
-      };
-
-      final iconUrlByObjectId = <int, String>{};
-      final iconUrlByObjectName = <String, String>{};
-      final iconUrlByTrackerId = <String, String>{};
-      final trackersByObject = <int, Set<String>>{};
-      for (final object in objects) {
-        final objectId = object.id;
-        if (objectId == null) {
-          continue;
-        }
-        final iconId = object.iconId;
-        if (iconId == null) {
-          continue;
-        }
-        final iconUrl = iconsById[iconId]?.url;
-        if (iconUrl != null && iconUrl.isNotEmpty) {
-          iconUrlByObjectId[objectId] = iconUrl;
-          final name = object.name;
-          if (name != null && name.isNotEmpty) {
-            iconUrlByObjectName[name] = iconUrl;
-          }
-          // Try to discover tracker IDs inside the raw object payload (case-insensitive keys like 'tracker', 'imei')
-          void collectTrackers(dynamic node) {
-            if (node is Map) {
-              for (final entry in node.entries) {
-                final key = '${entry.key}'.toLowerCase();
-                final value = entry.value;
-                if (key.contains('tracker') || key.contains('imei')) {
-                  final text = value?.toString().trim();
-                  if (text != null && text.isNotEmpty) {
-                    iconUrlByTrackerId.putIfAbsent(text, () => iconUrl);
-                    trackersByObject.putIfAbsent(objectId, () => <String>{}).add(text);
-                  }
-                }
-                collectTrackers(value);
-              }
-            } else if (node is List) {
-              for (final v in node) {
-                collectTrackers(v);
-              }
-            }
-          }
-          collectTrackers(object.raw);
-        }
-      }
-
-      // If statuses are empty, fallback to using /Objects locations so the map shows vehicle icons
-      if (statuses.isEmpty) {
-        final fallbackMarkers = <MapMarkerModel>[];
-        final usedIconUrls = <String>{};
-        for (final object in objects) {
-          final lat = object.latitude;
-          final lng = object.longitude;
-          if (lat == null || lng == null) continue;
-          final iconUrl = object.iconId != null ? iconsById[object.iconId!]?.url : null;
-          if (iconUrl != null && iconUrl.isNotEmpty) {
-            usedIconUrls.add(iconUrl);
-          }
-          final statusLike = TraxrootObjectStatusModel(
-            id: object.id,
-            name: object.name,
-            latitude: lat,
-            longitude: lng,
-            address: object.address,
-            iconId: object.iconId,
-          );
-          final marker = statusLike.toMarker(icon: iconUrl);
-          if (marker != null) {
-            fallbackMarkers.add(marker);
-          }
-        }
-
-        final zones = <MapZoneModel>[];
-        for (final geozone in geozones) {
-          final zoneModel = geozone.toZoneModel();
-          if (zoneModel != null) {
-            zones.add(zoneModel);
-          }
-        }
-
-        if (!mounted) return;
-        setState(() {
-          _markers = fallbackMarkers;
-          _zones = zones;
-          _objects = const []; // statuses absent; we used object fallback
-          _iconUrlByObjectId = iconUrlByObjectId;
-          _allJobsResponse = allJobs;
-          _ongoingJobsResponse = ongoingJobs;
-          _completedJobsResponse = completedJobs;
-          _loading = false;
-        });
-
-        if (usedIconUrls.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            for (final url in usedIconUrls) {
-              precacheImage(NetworkImage(url), context);
-            }
-          });
-        }
-        return;
-      }
-
-      // Build status lookups for fast matching
-      final statusesById = <int, TraxrootObjectStatusModel>{};
-      final statusesByName = <String, TraxrootObjectStatusModel>{};
-      final statusesByTracker = <String, TraxrootObjectStatusModel>{};
-      for (final s in statuses) {
-        if (s.id != null) statusesById[s.id!] = s;
-        if (s.name != null && s.name!.isNotEmpty) statusesByName[s.name!] = s;
-        if (s.trackerId != null && s.trackerId!.isNotEmpty) statusesByTracker[s.trackerId!] = s;
-      }
-
-      final markers = <MapMarkerModel>[];
-      final usedIconUrls = <String>{};
-      
-      // Iterate /Objects and fetch real location from /ObjectsStatus per object
-      for (final object in objects) {
-        final objectId = object.id;
-        if (objectId == null) continue;
-        
-        final objectName = object.name;
-        final iconUrl = object.iconId != null ? iconsById[object.iconId!]?.url : null;
-        
-        if (iconUrl != null && iconUrl.isNotEmpty) {
-          usedIconUrls.add(iconUrl);
-        }
-
-        // Find matching status by id, name, or tracker
-        TraxrootObjectStatusModel? matchedStatus;
-        matchedStatus = statusesById[objectId];
-        if (matchedStatus == null && objectName != null && objectName.isNotEmpty) {
-          matchedStatus = statusesByName[objectName];
-        }
-        if (matchedStatus == null) {
-          final trackers = trackersByObject[objectId];
-          if (trackers != null) {
-            for (final t in trackers) {
-              final s = statusesByTracker[t];
-              if (s != null) {
-                matchedStatus = s;
-                break;
-              }
-            }
-          }
-        }
-
-        // If no status from /ObjectsStatus, fetch latest point per object
-        if (matchedStatus == null) {
-          try {
-            matchedStatus = await _objectsDatasource.getLatestPoint(objectId: objectId);
-          } catch (_) {
-            // Skip this object if we can't get location
-            continue;
-          }
-        }
-
-        // Only create marker if we have valid lat/lon (not 0.0, 0.0)
-        final lat = matchedStatus?.latitude;
-        final lon = matchedStatus?.longitude;
-        if (lat == null || lon == null || (lat == 0.0 && lon == 0.0)) {
-          continue;
-        }
-
-        // Compose marker with real location from status
-        final composed = TraxrootObjectStatusModel(
-          id: objectId,
-          name: objectName,
-          trackerId: matchedStatus?.trackerId,
-          latitude: lat,
-          longitude: lon,
-          address: matchedStatus?.address,
-          speed: matchedStatus?.speed,
-          course: matchedStatus?.course,
-          altitude: matchedStatus?.altitude,
-          status: matchedStatus?.status,
-          updatedAt: matchedStatus?.updatedAt,
-          satellites: matchedStatus?.satellites,
-          accuracy: matchedStatus?.accuracy,
-          iconId: object.iconId,
-        );
-
-        final marker = composed.toMarker(icon: iconUrl);
-        if (marker != null) {
-          markers.add(marker);
-        }
-      }
-
-      final zones = <MapZoneModel>[];
-      for (final geozone in geozones) {
-        final zoneModel = geozone.toZoneModel();
-        if (zoneModel != null) {
-          zones.add(zoneModel);
-        }
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _markers = markers;
-        _zones = zones;
-        _objects = statuses;
-        _iconUrlByObjectId = iconUrlByObjectId;
-        _allJobsResponse = allJobs;
-        _ongoingJobsResponse = ongoingJobs;
-        _completedJobsResponse = completedJobs;
-        _loading = false;
-      });
-
-      if (usedIconUrls.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          final precacheTargets = usedIconUrls;
-          for (final url in precacheTargets) {
-            precacheImage(NetworkImage(url), context);
-          }
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = e.toString();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load map data.')), 
-      );
-    }
-  }
-
-  GeoPoint get _mapCenter {
-    // Always use Manila as center, not first marker
-    return _defaultCenter;
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final controller = Get.put(HomeController());
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: RefreshIndicator(
-        onRefresh: _loadData,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  tooltip: 'Refresh',
-                  onPressed: _loading ? null : _loadData,
-                  icon: const Icon(Icons.refresh),
+        onRefresh: controller.loadData,
+        child: Obx(
+          () => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    tooltip: 'Refresh',
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : controller.loadData,
+                    icon: const Icon(Icons.refresh),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: controller.isLoading.value
+                    ? const Center(child: CircularProgressIndicator())
+                    : AdaptiveMap(
+                        center: controller.mapCenter,
+                        zoom: 12.5,
+                        markers: controller.markers,
+                        zones: controller.zones,
+                        onMarkerTap: (marker) =>
+                            _handleMarkerTap(context, controller, marker),
+                      ),
+              ),
+              if (controller.error.value.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  controller.error.value,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
               ],
-            ),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : AdaptiveMap(
-                      center: _mapCenter,
-                      zoom: 12.5,
-                      markers: _markers,
-                      zones: _zones,
-                      onMarkerTap: _handleMarkerTap,
-                    ),
-            ),
-            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Text('Overview', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              Text(
-                _error!,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Theme.of(context).colorScheme.error),
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      title: 'Open Jobs',
+                      value: controller.openJobsCount.toString(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      title: 'Ongoing',
+                      value: controller.ongoingJobsCount.toString(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      title: 'Complete',
+                      value: controller.completedJobsCount.toString(),
+                    ),
+                  ),
+                ],
               ),
             ],
-            const SizedBox(height: 16),
-            Text(
-              'Overview',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    title: 'Open Jobs',
-                    value: (_allJobsResponse?.data?.length ?? 0).toString(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    title: 'Ongoing',
-                    value: (_ongoingJobsResponse?.data?.length ?? 0).toString(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatCard(
-                    title: 'Complete',
-                    value: (_completedJobsResponse?.data?.length ?? 0).toString(),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  void _handleMarkerTap(MapMarkerModel marker) {
-    final data = marker.data;
-    TraxrootObjectStatusModel? status;
-    if (data is TraxrootObjectStatusModel) {
-      status = data;
-    } else {
-      status = _objects.firstWhere(
-        (obj) => obj.geoPoint?.lat == marker.position.lat && obj.geoPoint?.lng == marker.position.lng,
-        orElse: () => const TraxrootObjectStatusModel(),
-      );
-      if (status.id == null && status.name == null) {
-        status = null;
-      }
-    }
-    if (status == null) {
-      return;
-    }
+  void _handleMarkerTap(
+    BuildContext context,
+    HomeController controller,
+    dynamic marker,
+  ) {
+    final status = controller.findStatusForMarker(marker);
+    if (status == null) return;
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (_) => ObjectStatusBottomSheet(
-        status: status!,
+        status: status,
         onTrack: status.id != null
             ? () {
-                Navigator.of(context).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => VehicleTrackingPage(
-                      vehicle: status!,
-                      iconUrl: status.id != null ? _iconUrlByObjectId[status.id!] : null,
-                    ),
+                Get.back();
+                Get.to(
+                  () => VehicleTrackingPage(
+                    vehicle: status,
+                    iconUrl: status.id != null
+                        ? controller.iconUrlByObjectId[status.id!]
+                        : null,
                   ),
                 );
               }
@@ -437,7 +135,12 @@ class _StatCard extends StatelessWidget {
           children: [
             Text(title, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 6),
-            Text(value, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:fms/core/network/http_error_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -32,6 +33,7 @@ class GetJobDatasource {
       // log(response.statusCode.toString(), name: 'GetJobDatasource', level: 800);
       return GetJobResponseModel.fromJson(response.body);
     } else {
+      HttpErrorHandler.handleResponse(response.statusCode, response.body);
       log(response.body, name: 'GetJobDatasource', level: 1200);
       throw Exception('Failed to load data');
     }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:fms/core/theme/app_theme.dart';
 import 'package:fms/page/auth/presentation/login_page.dart';
-import 'package:fms/core/constants/variables.dart';
 import 'package:fms/nav_bar.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'core/services/navigation_service.dart';
+import 'package:fms/controllers/auth_controller.dart';
 
 void main() {
+  // Initialize controllers
+  Get.put(AuthController());
   runApp(const MyApp());
 }
 
@@ -15,11 +16,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'E-FMS',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      navigatorKey: NavigationService.navigatorKey,
       home: const RootGate(),
     );
   }
@@ -28,25 +28,19 @@ class MyApp extends StatelessWidget {
 class RootGate extends StatelessWidget {
   const RootGate({super.key});
 
-  Future<bool> _hasSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(Variables.prefApiKey);
-    return token != null && token.isNotEmpty;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _hasSession(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final hasToken = snapshot.data == true;
-        return hasToken ? const NavBar() : const LoginPage();
-      },
-    );
+    final authController = Get.find<AuthController>();
+    
+    return Obx(() {
+      if (authController.isLoading.value) {
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      }
+      return authController.isAuthenticated.value 
+          ? const NavBar() 
+          : const LoginPage();
+    });
   }
 }

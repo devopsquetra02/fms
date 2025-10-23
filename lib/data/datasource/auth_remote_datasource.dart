@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:fms/core/constants/variables.dart';
+import 'package:fms/core/network/http_error_handler.dart';
 import 'package:fms/data/models/response/auth_response_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,7 +35,8 @@ class AuthRemoteDataSource {
         throw Exception('Login failed: invalid response');
       }
     } else {
-      String message = 'Login failed (${response.statusCode})';
+      HttpErrorHandler.handleResponse(response.statusCode, response.body);
+      String message = 'Login failed, please try again';
       log(response.body, name: 'AuthRemoteDataSource', level: 1200);
       try {
         final decoded = json.decode(response.body) as Map<String, dynamic>;

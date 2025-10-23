@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:fms/core/network/http_error_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -41,6 +42,7 @@ class DriverGetJobDatasource {
     if (response.statusCode == 200) {
       return DriverGetJobResponseModel.fromJson(response.body);
     } else {
+      HttpErrorHandler.handleResponse(response.statusCode, response.body);
       log(response.body, name: 'DriverGetJobDatasource', level: 1200);
       throw Exception('Failed to start job');
     }

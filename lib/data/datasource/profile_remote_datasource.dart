@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:fms/core/network/http_error_handler.dart';
 import 'package:fms/data/models/response/profile_response_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,6 +41,7 @@ class ProfileRemoteDataSource {
         throw Exception('Failed to load profile: invalid response');
       }
     } else {
+      HttpErrorHandler.handleResponse(response.statusCode, response.body);
       String message = 'Failed to load profile (${response.statusCode})';
       log(response.body, name: 'ProfileRemoteDataSource', level: 1200);
       try {

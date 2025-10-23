@@ -33,6 +33,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_map: ^8.2.1
+  flutter_secure_storage: ^9.2.4
   get: ^4.7.2
   google_maps_flutter: ^2.12.3
   http: ^1.5.0

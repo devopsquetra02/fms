@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:fms/core/network/http_error_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -41,6 +42,7 @@ class FinishJobDatasource {
     if (response.statusCode == 200) {
       return FinishJobResponseModel.fromJson(response.body);
     } else {
+      HttpErrorHandler.handleResponse(response.statusCode, response.body);
       log(response.body, name: 'FinishJobDatasource', level: 1200);
       throw Exception('Failed to finish job');
     }

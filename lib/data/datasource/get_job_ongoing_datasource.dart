@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:fms/core/network/http_error_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -37,6 +38,7 @@ class GetJobOngoingDatasource {
     if (response.statusCode == 200) {
       return GetJobResponseModel.fromJson(response.body);
     } else {
+      HttpErrorHandler.handleResponse(response.statusCode, response.body);
       log(response.body, name: 'GetJobOngoingDatasource', level: 1200);
       throw Exception('Failed to load ongoing jobs');
     }

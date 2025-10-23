@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:get/get.dart';
 import '../../page/profile/presentation/profile_page.dart';
 
 class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
@@ -24,10 +24,7 @@ class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.person),
           onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfilePage()),
-            );
+            Get.to(() => const ProfilePage());
           },
         ),
       ],
