@@ -7,6 +7,8 @@ import 'package:fms/data/models/response/auth_response_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Note: Auth endpoints use http directly, not ApiClient, 
+// because company validation is not needed for login/logout
 class AuthRemoteDataSource {
   Future<AuthResponseModel> login({
     required String email,
@@ -36,11 +38,15 @@ class AuthRemoteDataSource {
       }
     } else {
       HttpErrorHandler.handleResponse(response.statusCode, response.body);
-      String message = 'Login failed, please try again';
+      String message = 'Login failed, please try again later';
       log(response.body, name: 'AuthRemoteDataSource', level: 1200);
       try {
         final decoded = json.decode(response.body) as Map<String, dynamic>;
-        if (decoded['message'] != null) message = decoded['message'].toString();
+        if (decoded['Message'] != null) {
+          message = decoded['Message'].toString();
+        } else if (decoded['message'] != null) {
+          message = decoded['message'].toString();
+        }
       } catch (_) {}
       throw Exception(message);
     }

@@ -26,7 +26,7 @@ class HomeController extends GetxController {
 
   static const GeoPoint defaultCenter = GeoPoint(14.5995, 120.9842); // Manila fallback
 
-  GeoPoint get mapCenter => defaultCenter;
+  GeoPoint get mapCenter => defaultCenter;  
 
   int get openJobsCount => allJobsResponse.value?.data?.length ?? 0;
   int get ongoingJobsCount => ongoingJobsResponse.value?.data?.length ?? 0;

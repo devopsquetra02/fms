@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:fms/core/network/http_error_handler.dart';
-import 'package:http/http.dart' as http;
+import 'package:fms/core/network/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/variables.dart';
@@ -25,7 +25,7 @@ class GetJobOngoingDatasource {
     final endpoint = Variables.getOngoingJobEndpoint(userId);
     final uri = Uri.parse(endpoint).replace(queryParameters: {'x-key': apiKey});
 
-    final response = await http.get(uri);
+    final response = await ApiClient.get(uri);
     if (await SessionService.handleUnauthorizedResponse(prefs, response)) {
       throw Exception('Unauthorized');
     }

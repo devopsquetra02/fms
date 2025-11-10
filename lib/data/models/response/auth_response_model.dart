@@ -23,15 +23,39 @@ class AuthResponseModel {
 class Data {
   final int? userId;
   final String? apiKey;
+  final String? company;
+  final int? companyId;
+  final int? companyType;
+  final String? companyLabel;
 
-  Data({this.userId, this.apiKey});
+  Data({
+    this.userId,
+    this.apiKey,
+    this.company,
+    this.companyId,
+    this.companyType,
+    this.companyLabel,
+  });
 
   factory Data.fromJson(String str) => Data.fromMap(json.decode(str));
 
   String toJson() => json.encode(toMap());
 
-  factory Data.fromMap(Map<String, dynamic> json) =>
-      Data(userId: json["UserID"], apiKey: json["ApiKey"]);
+  factory Data.fromMap(Map<String, dynamic> json) => Data(
+        userId: json["UserID"],
+        apiKey: json["ApiKey"],
+        company: json["Company"],
+        companyId: json["CompanyID"],
+        companyType: json["CompanyType"],
+        companyLabel: json["CompanyLabel"],
+      );
 
-  Map<String, dynamic> toMap() => {"UserID": userId, "ApiKey": apiKey};
+  Map<String, dynamic> toMap() => {
+        "UserID": userId,
+        "ApiKey": apiKey,
+        "Company": company,
+        "CompanyID": companyId,
+        "CompanyType": companyType,
+        "CompanyLabel": companyLabel,
+      };
 }

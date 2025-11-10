@@ -265,7 +265,15 @@ class JobsPage extends StatelessWidget {
     final result = await Get.to(
       () => JobDetailsPage(job: job, isOngoing: isOngoing),
     );
-    if (result == true) {
+    if (result is Map && result['refresh'] == true) {
+      final controller = Get.find<JobsController>();
+      await controller.refresh();
+      
+      // Navigate to ongoing tab if job was just accepted
+      if (result['navigateToOngoing'] == true) {
+        controller.tabController.animateTo(1); // Index 1 is Ongoing tab
+      }
+    } else if (result == true) {
       Get.find<JobsController>().refresh();
     }
   }

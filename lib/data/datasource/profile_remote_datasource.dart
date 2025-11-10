@@ -3,7 +3,7 @@ import 'dart:developer';
 
 import 'package:fms/core/network/http_error_handler.dart';
 import 'package:fms/data/models/response/profile_response_model.dart';
-import 'package:http/http.dart' as http;
+import 'package:fms/core/network/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/variables.dart';
@@ -24,7 +24,7 @@ class ProfileRemoteDataSource {
 
     final endpoint = Variables.getProfileEndpoint(userId);
     final uri = Uri.parse(endpoint).replace(queryParameters: {'x-key': apiKey});
-    final response = await http.get(
+    final response = await ApiClient.get(
       uri,
       headers: {'Accept': 'application/json'},
     );

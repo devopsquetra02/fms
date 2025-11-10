@@ -61,7 +61,7 @@ class SessionService {
           const SnackBar(
             content: Text('Session expired. Please login again.'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: Duration(seconds: 2),
           ),
         );
       }

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:fms/nav_bar.dart';
 import 'package:fms/core/constants/variables.dart';
 import 'package:fms/data/datasource/auth_remote_datasource.dart';
+import 'package:fms/core/services/subscription.dart';
+import 'package:fms/core/network/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widget/auth_button.dart';
@@ -50,14 +52,47 @@ class _LoginPageState extends State<LoginPage> {
       final prefs = await SharedPreferences.getInstance();
       final apiKey = res.data?.apiKey;
       final userID = res.data?.userId;
+      final company = res.data?.company;
+      final companyId = res.data?.companyId;
+      final companyType = res.data?.companyType;
+      final companyLabel = res.data?.companyLabel;
+      
       if (apiKey == null || apiKey.isEmpty) {
         throw Exception('Error fetch data');
       }
+      
+      // Save all data to SharedPreferences
       await prefs.setString(Variables.prefApiKey, apiKey);
       log(userID.toString(), name: 'Login', level: 800);
+      
       if (userID != null && userID.toString().isNotEmpty) {
         await prefs.setString(Variables.prefUserID, userID.toString());
       }
+      
+      if (company != null) {
+        await prefs.setString(Variables.prefCompany, company);
+      }
+      
+      if (companyId != null) {
+        await prefs.setInt(Variables.prefCompanyID, companyId);
+      }
+      
+      if (companyType != null) {
+        await prefs.setInt(Variables.prefCompanyType, companyType);
+        // Initialize subscription service based on company type
+        // 1 = basic, 2 = pro
+        subscriptionService.currentPlan = 
+            companyType == 2 ? Plan.pro : Plan.basic;
+        log('Company type: $companyType, Plan: ${subscriptionService.currentPlan}',
+            name: 'Login', level: 800);
+      }
+      
+      if (companyLabel != null) {
+        await prefs.setString(Variables.prefCompanyLabel, companyLabel);
+      }
+
+      // Reset ApiClient logout flag for new login session
+      ApiClient.resetLogoutFlag();
 
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
@@ -66,9 +101,20 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      String errorMessage = 'Login Failed';
+      // Extract error message from exception
+      final exceptionMessage = e.toString();
+      if (exceptionMessage.startsWith('Exception: ')) {
+        errorMessage = exceptionMessage.substring('Exception: '.length);
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Login Failed')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

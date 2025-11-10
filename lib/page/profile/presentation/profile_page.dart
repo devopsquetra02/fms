@@ -125,14 +125,17 @@ class _ProfilePageState extends State<ProfilePage> {
                           ButtonSegment(value: Plan.pro, label: Text('Pro')),
                         ],
                         selected: {subscriptionService.currentPlan},
-                        onSelectionChanged: (s) => setState(
-                          () => subscriptionService.currentPlan = s.first,
-                        ),
+                        // Disabled - cannot change subscription from app
+                        onSelectionChanged: null,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Pro unlocks Jobs page',
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        isPro
+                            ? 'Pro plan includes map view and vehicle tracking'
+                            : 'Basic plan - upgrade to Pro for map view and vehicle tracking',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),

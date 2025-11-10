@@ -11,6 +11,8 @@ class Variables {
       '$baseUrl/get-job-by-user/$userId';
   static String getOngoingJobEndpoint(String userId) =>
       '$baseUrl/get-job-ongoing/$userId';
+  static String getCheckTypeCompanyEndpoint(int companyId) =>
+      '$baseUrl/check-type-company/$companyId';
   // API endpoints
   static const String loginEndpoint = '$baseUrl/login';
   static const String logoutEndpoint = '$baseUrl/logout';
@@ -23,6 +25,7 @@ class Variables {
   static const String reportJobEndpoint = '$baseUrl/report-job';
   static const String postponeJobEndpoint = '$baseUrl/postpone-job';
   static const String cancelJobEndpoint = '$baseUrl/cancel-job';
+  static const String rescheduleJobEndpoint = '$baseUrl/reschedule-job';
 
   // Traxroot endpoints
   static const String traxrootBaseUrl = 'https://connect.traxroot.com/api';
@@ -47,6 +50,7 @@ class Variables {
   static const String traxrootGeozonesEndpoint = '$traxrootBaseUrl/Geozones';
   static const String traxrootGeozoneIconsEndpoint =
       '$traxrootBaseUrl/Geozones/Icons';
+  static const String traxrootProfileEndpoint = '$traxrootBaseUrl/profile';
   // static const String traxrootInternalDriversEndpoint =
   //     '$traxrootInternalBaseUrl/getDrivers';
   // static String traxrootInternalDriverByIdEndpoint(int driverId) =>
@@ -61,6 +65,11 @@ class Variables {
   // Shared Preferences keys
   static const String prefApiKey = 'apiKey';
   static const String prefUserID = 'UserID';
+  static const String prefCompany = 'Company';
+  static const String prefCompanyID = 'CompanyID';
+  static const String prefCompanyType = 'CompanyType';
+  static const String prefCompanyLabel = 'CompanyLabel';
+
   static const String prefTraxrootToken = 'TraxrootAccessToken';
   static const String prefTraxrootTokenExpiry = 'TraxrootAccessTokenExpiry';
 }

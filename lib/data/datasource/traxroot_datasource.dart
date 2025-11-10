@@ -10,6 +10,7 @@ import '../models/traxroot_geozone_model.dart';
 import '../models/traxroot_icon_model.dart';
 import '../models/traxroot_object_model.dart';
 import '../models/traxroot_object_status_model.dart';
+import '../models/traxroot_object_group_model.dart';
 
 class TraxrootAuthDatasource {
   Future<String> getAccessToken({bool forceRefresh = false}) async {
@@ -330,6 +331,64 @@ class TraxrootObjectsDatasource {
     }
 
     return list.map(TraxrootIconModel.fromMap).toList();
+  }
+
+  Future<List<TraxrootObjectGroupModel>> getObjectGroups() async {
+    final uri = Uri.parse(Variables.traxrootProfileEndpoint);
+    final response = await _authorizedGet(uri);
+
+    log(
+      'status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getObjectGroups',
+      level: 800,
+    );
+
+    if (response.statusCode != 200) {
+      log(
+        response.body,
+        name: 'TraxrootObjectsDatasource.getObjectGroups',
+        level: 1200,
+      );
+      throw Exception('Failed to fetch Traxroot object groups');
+    }
+
+    dynamic decoded = _decodeTraxrootBody(response.body);
+
+    // Some Traxroot responses wrap JSON in strings; try decoding again if needed
+    if (decoded is String) {
+      final reparsed = _decodeTraxrootBody(decoded) ?? _attemptJsonDecode(decoded);
+      if (reparsed != null) {
+        decoded = reparsed;
+      }
+    }
+
+    if (decoded is! Map<String, dynamic>) {
+      log(
+        'Unexpected profile payload type: ${decoded.runtimeType}',
+        name: 'TraxrootObjectsDatasource.getObjectGroups',
+        level: 1200,
+      );
+      throw Exception('Failed to parse profile response');
+    }
+
+    // Extract objectgroups from profile response
+    final objectgroups = decoded['objectgroups'];
+    if (objectgroups != null) {
+      final list = _normalizeDynamicList(objectgroups);
+      log(
+        'Object groups found: ${list.length}',
+        name: 'TraxrootObjectsDatasource.getObjectGroups',
+        level: 800,
+      );
+      return list.map(TraxrootObjectGroupModel.fromMap).toList();
+    }
+
+    log(
+      'No objectgroups found in response',
+      name: 'TraxrootObjectsDatasource.getObjectGroups',
+      level: 1000,
+    );
+    return const [];
   }
 
   Future<http.Response> _authorizedGet(Uri uri) async {

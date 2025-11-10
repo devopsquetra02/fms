@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/permissions/permission_helper.dart';
 import '../../../data/datasource/cancel_job_datasource.dart';
 import '../../../data/datasource/finish_job_datasource.dart';
+import '../../../data/datasource/reschedule_job_datasource.dart';
 import '../../../data/datasource/traxroot_datasource.dart';
 import '../../../core/models/geo.dart';
 import '../../profile/presentation/profile_page.dart';
@@ -31,6 +32,7 @@ class JobDetailsPage extends StatefulWidget {
 
 class _JobDetailsPageState extends State<JobDetailsPage> {
   final TextEditingController _cancelReasonController = TextEditingController();
+  final TextEditingController _rescheduleNotesController = TextEditingController();
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   @override
   void dispose() {
     _cancelReasonController.dispose();
+    _rescheduleNotesController.dispose();
     super.dispose();
   }
 
@@ -720,17 +723,25 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
             ),
           ),
         );
-        // Kembali ke halaman sebelumnya dan minta refresh
-        Navigator.pop(context, true);
+        // Return with special flag to navigate to ongoing tab
+        Navigator.pop(context, {'refresh': true, 'navigateToOngoing': true});
       }
     } catch (e) {
       if (context.mounted) {
         log('Failed to start job: ${e.toString()}');
         Navigator.of(context).pop(); // close loading
+        
+        // Extract error message from exception
+        String errorMessage = 'Failed to start job';
+        final exceptionMessage = e.toString();
+        if (exceptionMessage.startsWith('Exception: ')) {
+          errorMessage = exceptionMessage.substring('Exception: '.length);
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to start job',
+              errorMessage,
               style: TextStyle(color: Colors.white),
             ),
             backgroundColor: Colors.red,
@@ -823,9 +834,22 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       if (context.mounted) {
         log(e.toString());
         Navigator.of(context).pop();
+        
+        // Extract error message from exception
+        String errorMessage = 'Failed to finish job';
+        final exceptionMessage = e.toString();
+        if (exceptionMessage.startsWith('Exception: ')) {
+          errorMessage = exceptionMessage.substring('Exception: '.length);
+        }
+        
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to finish job')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -1086,6 +1110,332 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     return result;
   }
 
+  Future<void> _showRescheduleDialog(BuildContext context) async {
+    final jobId = widget.job.jobId as int?;
+    if (jobId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Job ID not found',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    TimeOfDay selectedTime = TimeOfDay.now();
+    final notesController = _rescheduleNotesController;
+    notesController.clear();
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFF)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header
+                      Text(
+                        'Think About\nRescheduling',
+                        textAlign: TextAlign.center,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Date Time Picker
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorScheme.primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Date Selector
+                            InkWell(
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: dialogContext,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 365),
+                                  ),
+                                );
+                                if (picked != null) {
+                                  setState(() => selectedDate = picked);
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          DateFormat('EEE MMM d')
+                                              .format(selectedDate),
+                                          style: textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.primary,
+                                          ),
+                                        ),
+                                        Text(
+                                          DateFormat('yyyy').format(selectedDate),
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Icon(
+                                      Icons.calendar_today,
+                                      color: colorScheme.primary,
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Divider(
+                              height: 1,
+                              color: colorScheme.primary.withValues(alpha: 0.1),
+                            ),
+                            // Time Selector
+                            InkWell(
+                              onTap: () async {
+                                final picked = await showTimePicker(
+                                  context: dialogContext,
+                                  initialTime: selectedTime,
+                                );
+                                if (picked != null) {
+                                  setState(() => selectedTime = picked);
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      selectedTime.format(dialogContext),
+                                      style: textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.access_time,
+                                      color: colorScheme.primary,
+                                      size: 20,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Notes TextField
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorScheme.primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: notesController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: 'Leave notes here',
+                            hintStyle: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.6,
+                              ),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(null),
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                backgroundColor: colorScheme.error,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                final scheduledDateTime = DateTime(
+                                  selectedDate.year,
+                                  selectedDate.month,
+                                  selectedDate.day,
+                                  selectedTime.hour,
+                                  selectedTime.minute,
+                                );
+                                Navigator.of(dialogContext).pop({
+                                  'date': scheduledDateTime,
+                                  'notes': notesController.text.trim(),
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                backgroundColor: const Color(0xFFFF9800),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Reschedule',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (result == null || !mounted) {
+      return;
+    }
+
+    // Process reschedule
+    final scheduledDate = result['date'] as DateTime;
+    final notes = result['notes'] as String?;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final datasource = RescheduleJobDatasource();
+      final response = await datasource.rescheduleJob(
+        jobId: jobId,
+        newDate: scheduledDate,
+        notes: notes,
+      );
+
+      if (!mounted) return;
+
+      Navigator.of(context).pop(); // Close loading
+
+      final success = response.success == true;
+      final message = response.message ??
+          (success ? 'Job rescheduled successfully' : 'Failed to reschedule');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.white)),
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+
+      if (success) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      log('Failed to reschedule job: ${e.toString()}');
+      Navigator.of(context).pop(); // Close loading
+
+      // Extract error message
+      String errorMessage = 'Failed to reschedule job';
+      final exceptionMessage = e.toString();
+      if (exceptionMessage.startsWith('Exception: ')) {
+        errorMessage = exceptionMessage.substring('Exception: '.length);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorMessage,
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _cancelJob(BuildContext context) async {
     final jobId = widget.job.jobId as int?;
     if (jobId == null) {
@@ -1101,6 +1451,14 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       return;
     }
 
+    // First, show reschedule dialog
+    await _showRescheduleDialog(context);
+    
+    // If user returns from reschedule dialog without rescheduling,
+    // they might want to proceed with cancel
+    if (!mounted) return;
+    
+    // Ask for confirmation to cancel
     final confirmed =
         await showDialog<bool>(
           context: context,

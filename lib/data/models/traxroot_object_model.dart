@@ -5,6 +5,7 @@ class TraxrootObjectModel {
   final TraxrootObjectOdometer? odometer;
   final List<Map<String, dynamic>> trends;
   final List<Map<String, dynamic>> sensors;
+  final List<dynamic> groups;
   final Map<String, dynamic> raw;
 
   const TraxrootObjectModel({
@@ -14,6 +15,7 @@ class TraxrootObjectModel {
     this.odometer,
     this.trends = const [],
     this.sensors = const [],
+    this.groups = const [],
     this.raw = const {},
   });
 
@@ -49,6 +51,13 @@ class TraxrootObjectModel {
       return const [];
     }
 
+    List<dynamic> _asList(dynamic value) {
+      if (value is List) {
+        return List<dynamic>.from(value);
+      }
+      return const [];
+    }
+
     final raw = Map<String, dynamic>.from(map);
     final mainMap = _asMap(map['main']);
     final serviceMap = _asMap(map['service']);
@@ -62,6 +71,7 @@ class TraxrootObjectModel {
       odometer: odometerMap != null ? TraxrootObjectOdometer.fromMap(odometerMap) : null,
       trends: _asMapList(map['trends']),
       sensors: _asMapList(map['sensors']),
+      groups: _asList(map['groups']),
       raw: raw,
     );
   }

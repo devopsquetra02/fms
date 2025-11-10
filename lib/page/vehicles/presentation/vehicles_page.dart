@@ -37,18 +37,49 @@ class VehiclesPage extends StatelessWidget {
                       isExpanded: true,
                       decoration: const InputDecoration(
                         prefixIcon: Icon(Icons.group_outlined),
-                        labelText: 'Group',
+                        labelText: 'Select a group',
                       ),
                       items: <DropdownMenuItem<String>>[
-                        const DropdownMenuItem(
+                        DropdownMenuItem(
                           value: '',
-                          child: Text('All groups'),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('All'),
+                              Text(
+                                '${controller.totalVehicleCount}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        ...controller.availableGroups
-                            .map(
-                              (g) => DropdownMenuItem(value: g, child: Text(g)),
-                            )
-                            .toList(),
+                        ...controller.availableGroups.map((g) {
+                          final count = controller.groupCounts[g] ?? 0;
+                          return DropdownMenuItem(
+                            value: g,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    g,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '$count',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       ],
                       onChanged: controller.updateSelectedGroup,
                     ),

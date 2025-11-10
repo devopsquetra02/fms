@@ -4,6 +4,7 @@ import 'package:fms/core/widgets/adaptive_map.dart';
 import 'package:fms/core/widgets/object_status_bottom_sheet.dart';
 import 'package:fms/controllers/home_controller.dart';
 import 'package:fms/page/vehicles/presentation/vehicle_tracking_page.dart';
+import 'package:fms/core/services/subscription.dart';
 
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
@@ -11,6 +12,7 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(HomeController());
+    final isPro = subscriptionService.currentPlan == Plan.pro;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -32,18 +34,51 @@ class HomeTab extends StatelessWidget {
                   ),
                 ],
               ),
-              Expanded(
-                child: controller.isLoading.value
-                    ? const Center(child: CircularProgressIndicator())
-                    : AdaptiveMap(
-                        center: controller.mapCenter,
-                        zoom: 12.5,
-                        markers: controller.markers,
-                        zones: controller.zones,
-                        onMarkerTap: (marker) =>
-                            _handleMarkerTap(context, controller, marker),
-                      ),
-              ),
+              // Only show map for Pro users
+              if (isPro)
+                Expanded(
+                  child: controller.isLoading.value
+                      ? const Center(child: CircularProgressIndicator())
+                      : AdaptiveMap(
+                          center: controller.mapCenter,
+                          zoom: 12.5,
+                          markers: controller.markers,
+                          zones: controller.zones,
+                          onMarkerTap: (marker) =>
+                              _handleMarkerTap(context, controller, marker),
+                        ),
+                ),
+              // For basic users, show upgrade message
+              if (!isPro)
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.map_outlined,
+                          size: 80,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Map View',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Upgrade to Pro to access map view\nand vehicle tracking',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               if (controller.error.value.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -53,7 +88,8 @@ class HomeTab extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
+              if (isPro) const SizedBox(height: 16),
+              if (!isPro) const SizedBox(height: 8),
               Text('Overview', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Row(
