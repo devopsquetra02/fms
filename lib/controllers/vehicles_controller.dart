@@ -8,17 +8,20 @@ import 'package:fms/data/models/traxroot_object_model.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 
 class VehiclesController extends GetxController {
-  final _objectsDatasource = TraxrootObjectsDatasource(TraxrootAuthDatasource());
+  final _objectsDatasource = TraxrootObjectsDatasource(
+    TraxrootAuthDatasource(),
+  );
 
   final RxBool isLoading = false.obs;
   final RxList<TraxrootObjectModel> objects = <TraxrootObjectModel>[].obs;
-  final RxMap<int, TraxrootIconModel> iconsById = <int, TraxrootIconModel>{}.obs;
+  final RxMap<int, TraxrootIconModel> iconsById =
+      <int, TraxrootIconModel>{}.obs;
   final RxnInt loadingObjectId = RxnInt();
   final RxString query = ''.obs;
   final RxnString selectedGroup = RxnString();
   final RxList<String> availableGroups = <String>[].obs;
   final RxMap<String, int> groupCounts = <String, int>{}.obs;
-  
+
   // Dynamic mapping of group IDs to group names from API
   final RxMap<int, String> groupIdToName = <int, String>{}.obs;
 
@@ -26,8 +29,9 @@ class VehiclesController extends GetxController {
     final q = query.value.trim().toLowerCase();
     return objects.where((v) {
       // Check if vehicle belongs to selected group
-      bool matchGroup = selectedGroup.value == null || selectedGroup.value!.isEmpty;
-      
+      bool matchGroup =
+          selectedGroup.value == null || selectedGroup.value!.isEmpty;
+
       if (!matchGroup && selectedGroup.value != null) {
         // Check if any of the vehicle's groups matches the selected group
         for (final group in v.groups) {
@@ -38,7 +42,7 @@ class VehiclesController extends GetxController {
           } else if (group is String) {
             groupId = int.tryParse(group);
           }
-          
+
           if (groupId != null) {
             final groupName = groupIdToName[groupId];
             if (groupName == selectedGroup.value) {
@@ -48,7 +52,7 @@ class VehiclesController extends GetxController {
           }
         }
       }
-      
+
       final name = (v.name ?? '').toLowerCase();
       final comment = (v.main?.comment ?? '').toLowerCase();
       final matchText = q.isEmpty || name.contains(q) || comment.contains(q);
@@ -71,7 +75,7 @@ class VehiclesController extends GetxController {
       final objectsData = await _objectsDatasource.getObjects();
       final icons = await _objectsDatasource.getObjectIcons();
       final objectGroups = await _objectsDatasource.getObjectGroups();
-      
+
       final iconMap = <int, TraxrootIconModel>{};
       for (final icon in icons) {
         final id = icon.id;
@@ -82,7 +86,7 @@ class VehiclesController extends GetxController {
 
       objects.value = objectsData;
       iconsById.value = iconMap;
-      
+
       // Build group ID to name mapping from API
       final groupMapping = <int, String>{};
       for (final group in objectGroups) {
@@ -91,21 +95,24 @@ class VehiclesController extends GetxController {
         }
       }
       groupIdToName.value = groupMapping;
-      
+
       // log('Object groups count: ${objectGroups.length}', name: 'VehiclesController.loadData');
       // log('Group mapping: $groupMapping', name: 'VehiclesController.loadData');
-      
+
       // Build group list with counts from groups field
       final groupCountMap = <String, int>{};
-      
+
       // Log sample vehicle groups for debugging
       if (objectsData.isNotEmpty) {
         final sampleVehicles = objectsData.take(3).toList();
         for (var v in sampleVehicles) {
-          log('Vehicle ${v.name}: groups = ${v.groups}', name: 'VehiclesController.loadData');
+          log(
+            'Vehicle ${v.name}: groups = ${v.groups}',
+            name: 'VehiclesController.loadData',
+          );
         }
       }
-      
+
       for (final obj in objectsData) {
         // Extract group IDs from groups array and convert to names
         if (obj.groups.isNotEmpty) {
@@ -117,7 +124,7 @@ class VehiclesController extends GetxController {
             } else if (group is String) {
               groupId = int.tryParse(group);
             }
-            
+
             if (groupId != null) {
               final groupName = groupIdToName[groupId];
               if (groupName != null && groupName.isNotEmpty) {
@@ -127,22 +134,26 @@ class VehiclesController extends GetxController {
           }
         }
       }
-      
+
       final groups = groupCountMap.keys.toList()..sort();
-      
+
       // log('Group count map: $groupCountMap', name: 'VehiclesController.loadData');
       // log('Available groups: $groups', name: 'VehiclesController.loadData');
-      
+
       availableGroups.value = groups;
       groupCounts.value = groupCountMap;
-      
-      if (selectedGroup.value != null && !availableGroups.contains(selectedGroup.value)) {
+
+      if (selectedGroup.value != null &&
+          !availableGroups.contains(selectedGroup.value)) {
         selectedGroup.value = null;
       }
 
       _precacheIcons(iconMap);
     } catch (e) {
       Get.snackbar(
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+        icon: const Icon(Icons.error, color: Colors.white),
         'Error',
         'Failed to load vehicles. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
@@ -168,36 +179,40 @@ class VehiclesController extends GetxController {
     }
   }
 
-  Future<TraxrootObjectStatusModel?> fetchObjectStatus(TraxrootObjectModel vehicle) async {
+  Future<TraxrootObjectStatusModel?> fetchObjectStatus(
+    TraxrootObjectModel vehicle,
+  ) async {
     final objectId = vehicle.id;
 
     if (objectId == null) {
       Get.snackbar(
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+        icon: const Icon(Icons.error, color: Colors.white),
         'Error',
-        'ID kendaraan tidak tersedia.',
+        'Vehicle ID is unavailable.',
         snackPosition: SnackPosition.BOTTOM,
       );
       return null;
     }
 
-    loadingObjectId.value = objectId;
-
     TraxrootObjectStatusModel? status;
     try {
       // Fetch object with sensors for complete information
-      status = await _objectsDatasource.getObjectWithSensors(objectId: objectId);
+      status = await _objectsDatasource.getObjectWithSensors(
+        objectId: objectId,
+      );
       // Fallback to regular status if sensor fetch fails
       status ??= await _objectsDatasource.getLatestPoint(objectId: objectId);
     } catch (e) {
       Get.snackbar(
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+        icon: const Icon(Icons.error, color: Colors.white),
         'Error',
-        'Gagal memuat detail kendaraan.',
+        'Failed to load vehicle details.',
         snackPosition: SnackPosition.BOTTOM,
       );
-    } finally {
-      if (loadingObjectId.value == objectId) {
-        loadingObjectId.value = null;
-      }
     }
 
     if (status != null) {

@@ -8,13 +8,88 @@ import 'package:fms/core/services/subscription.dart';
 
 import '../../../core/models/geo.dart';
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
+
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  bool _isMarkerLoading = false;
+
+  Future<void> _handleMarkerTap(
+    BuildContext context,
+    HomeController controller,
+    MapMarkerModel marker,
+  ) async {
+    if (_isMarkerLoading) return;
+
+    final status = controller.findStatusForMarker(marker);
+    if (status == null) return;
+
+    if (mounted) {
+      setState(() => _isMarkerLoading = true);
+    }
+
+    // Fetch sensor data if object ID is available
+    var statusWithSensors = status;
+    if (status.id != null) {
+      try {
+        final withSensors = await controller.getObjectWithSensors(status.id!);
+        if (withSensors != null) {
+          statusWithSensors = withSensors;
+        }
+      } catch (e) {
+        print('Failed to fetch sensors: $e');
+        // Continue with status without sensors
+      }
+    }
+
+    if (!mounted) return;
+
+    final enrichedStatus =
+        statusWithSensors.name != null && statusWithSensors.name!.isNotEmpty
+        ? statusWithSensors
+        : statusWithSensors.copyWith(name: marker.title);
+
+    final resolvedIconUrl =
+        marker.iconUrl ??
+        (enrichedStatus.id != null
+            ? controller.iconUrlByObjectId[enrichedStatus.id!]
+            : null);
+
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) => ObjectStatusBottomSheet(
+        status: enrichedStatus,
+        iconUrl: resolvedIconUrl,
+        onTrack: enrichedStatus.id != null
+            ? () {
+                Get.back();
+                Get.to(
+                  () => VehicleTrackingPage(
+                    vehicle: enrichedStatus,
+                    iconUrl: resolvedIconUrl,
+                  ),
+                );
+              }
+            : null,
+      ),
+    );
+
+    if (mounted) {
+      setState(() => _isMarkerLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(HomeController());
-    // final isPro = subscriptionService.currentPlan == Plan.pro;
+    final isPro = subscriptionService.currentPlan == Plan.pro;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -38,18 +113,33 @@ class HomeTab extends StatelessWidget {
               ),
               // Only show map for Pro users
               // if (isPro)
-                Expanded(
-                  child: controller.isLoading.value
-                      ? const Center(child: CircularProgressIndicator())
-                      : AdaptiveMap(
-                          center: controller.mapCenter,
-                          zoom: 12.5,
-                          markers: controller.markers,
-                          zones: controller.zones,
-                          onMarkerTap: (marker) =>
-                              _handleMarkerTap(context, controller, marker),
-                        ),
-                ),
+              Expanded(
+                child: controller.isLoading.value
+                    ? const Center(child: CircularProgressIndicator())
+                    : Stack(
+                        children: [
+                          AdaptiveMap(
+                            center: controller.mapCenter,
+                            zoom: 12.5,
+                            markers: controller.markers,
+                            zones: controller.zones,
+                            onMarkerTap: (marker) =>
+                                _handleMarkerTap(context, controller, marker),
+                          ),
+                          if (_isMarkerLoading)
+                            Positioned.fill(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
               // For basic users, show upgrade message
               // if (!isPro)
               //   Expanded(
@@ -91,94 +181,66 @@ class HomeTab extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 16),
-              // if (isPro) const SizedBox(height: 16),
-              // if (!isPro) const SizedBox(height: 8),
-              Text('Overview', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Open Jobs',
-                      value: controller.openJobsCount.toString(),
+              if (isPro) ...[
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Overview',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Ongoing',
-                      value: controller.ongoingJobsCount.toString(),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Open Jobs',
+                        value: controller.openJobsCount.toString(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Complete',
-                      value: controller.completedJobsCount.toString(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Ongoing',
+                        value: controller.ongoingJobsCount.toString(),
+                      ),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        title: 'Complete',
+                        value: controller.completedJobsCount.toString(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (!isPro) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Upgrade to Pro to access Job',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
                   ),
-                ],
-              ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
   }
-
-  Future<void> _handleMarkerTap(
-    BuildContext context,
-    HomeController controller,
-    MapMarkerModel marker,
-  ) async {
-    final status = controller.findStatusForMarker(marker);
-    if (status == null) return;
-
-    // Fetch sensor data if object ID is available
-    var statusWithSensors = status;
-    if (status.id != null) {
-      try {
-        final withSensors = await controller.getObjectWithSensors(status.id!);
-        if (withSensors != null) {
-          statusWithSensors = withSensors;
-        }
-      } catch (e) {
-        print('Failed to fetch sensors: $e');
-        // Continue with status without sensors
-      }
-    }
-
-    if (!context.mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (_) => ObjectStatusBottomSheet(
-        status: statusWithSensors,
-        onTrack: statusWithSensors.id != null
-            ? () {
-                Get.back();
-                Get.to(
-                  () => VehicleTrackingPage(
-                    vehicle: statusWithSensors,
-                    iconUrl: statusWithSensors.id != null
-                        ? controller.iconUrlByObjectId[statusWithSensors.id!]
-                        : null,
-                  ),
-                );
-              }
-            : null,
-      ),
-    );
-  }
 }
 
 class _StatCard extends StatelessWidget {
+  const _StatCard({required this.title, required this.value});
+
   final String title;
   final String value;
-  const _StatCard({required this.title, required this.value});
 
   @override
   Widget build(BuildContext context) {

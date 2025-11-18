@@ -149,12 +149,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Email tidak boleh kosong';
+                return 'Email cannot be empty';
               }
               if (!RegExp(
                 r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
               ).hasMatch(value)) {
-                return 'Email tidak valid';
+                return 'Email is not valid';
               }
               return null;
             },

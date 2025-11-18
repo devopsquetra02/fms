@@ -17,7 +17,9 @@ class VehicleTrackingPage extends StatefulWidget {
 }
 
 class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
-  final _objectsDatasource = TraxrootObjectsDatasource(TraxrootAuthDatasource());
+  final _objectsDatasource = TraxrootObjectsDatasource(
+    TraxrootAuthDatasource(),
+  );
   TraxrootObjectStatusModel? _vehicle;
   bool _loading = false;
   String? _error;
@@ -51,7 +53,8 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
 
     try {
       // Try to get object with sensors first, fallback to regular status
-      final latest = await _objectsDatasource.getObjectWithSensors(objectId: id)
+      final latest = await _objectsDatasource
+          .getObjectWithSensors(objectId: id)
           .catchError((_) => _objectsDatasource.getObjectStatus(objectId: id));
       if (!mounted) return;
       setState(() {
@@ -65,7 +68,7 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
         _error = e.toString();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memperbarui kendaraan: ${e.toString()}')),
+        SnackBar(content: Text('Failed to update vehicle: ${e.toString()}')),
       );
     }
   }
@@ -85,7 +88,9 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
             onPressed: _toggleAutoRefresh,
             icon: Icon(
               Icons.autorenew,
-              color: _autoRefresh ? Theme.of(context).colorScheme.primary : null,
+              color: _autoRefresh
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
             ),
           ),
           IconButton(
@@ -109,7 +114,7 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
                     )
                   : Center(
                       child: Text(
-                        'Lokasi kendaraan tidak tersedia',
+                        'Vehicle location is unavailable',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
@@ -120,9 +125,7 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
               child: ListTile(
                 leading: SizedBox(
                   width: 20,
-                  child: Center(
-                    child: _VehicleAvatar(iconUrl: widget.iconUrl),
-                  ),
+                  child: Center(child: _VehicleAvatar(iconUrl: widget.iconUrl)),
                 ),
                 title: Text(vehicle?.name ?? 'Vehicle'),
                 subtitle: Column(
@@ -133,7 +136,8 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
                       Text('Status: ${vehicle!.status}'),
                     if (vehicle?.speed != null)
                       Text('Speed: ${vehicle!.speed!.toStringAsFixed(1)} km/h'),
-                    if (vehicle?.address != null && vehicle!.address!.isNotEmpty)
+                    if (vehicle?.address != null &&
+                        vehicle!.address!.isNotEmpty)
                       Text(vehicle.address!),
                     if (vehicle?.updatedAt != null)
                       Text(
@@ -143,10 +147,9 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
                     if (_error != null)
                       Text(
                         _error!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: Theme.of(context).colorScheme.error),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                       ),
                   ],
                 ),
@@ -165,9 +168,7 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
-      builder: (_) => ObjectStatusBottomSheet(
-        status: vehicle,
-      ),
+      builder: (_) => ObjectStatusBottomSheet(status: vehicle),
     );
   }
 

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 import 'package:fms/data/models/traxroot_sensor_model.dart';
@@ -6,15 +7,18 @@ class ObjectStatusBottomSheet extends StatefulWidget {
   final TraxrootObjectStatusModel status;
   final VoidCallback? onTrack;
   final VoidCallback? onNavigate;
+  final String? iconUrl;
   const ObjectStatusBottomSheet({
     super.key,
     required this.status,
     this.onTrack,
     this.onNavigate,
+    this.iconUrl,
   });
 
   @override
-  State<ObjectStatusBottomSheet> createState() => _ObjectStatusBottomSheetState();
+  State<ObjectStatusBottomSheet> createState() =>
+      _ObjectStatusBottomSheetState();
 }
 
 class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
@@ -26,8 +30,10 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
     final status = widget.status;
     final subtitle = <String>[
       if (status.status != null && status.status!.isNotEmpty) status.status!,
-      if (status.speed != null) 'Speed: ${status.speed!.toStringAsFixed(1)} km/h',
-      if (status.course != null) 'Heading: ${status.course!.toStringAsFixed(0)}°',
+      if (status.speed != null)
+        'Speed: ${status.speed!.toStringAsFixed(1)} km/h',
+      if (status.course != null)
+        'Heading: ${status.course!.toStringAsFixed(0)}°',
     ].join(' • ');
 
     final updatedLabel = status.updatedAt != null
@@ -42,9 +48,11 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
     final sensors = status.sensors ?? [];
     final prioritySensors = _getPrioritySensors(sensors);
     final hasMoreSensors = sensors.length > prioritySensors.length;
-    
+
     // Debug: Print sensor count
-    print('ObjectStatusBottomSheet - Total sensors: ${sensors.length}, Priority: ${prioritySensors.length}');
+    print(
+      'ObjectStatusBottomSheet - Total sensors: ${sensors.length}, Priority: ${prioritySensors.length}',
+    );
 
     return SafeArea(
       top: false,
@@ -62,87 +70,118 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const CircleAvatar(
-                  child: Icon(Icons.directions_bus_filled),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        status.name ?? status.trackerId ?? 'Vehicle',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      if (subtitle.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(subtitle, style: theme.textTheme.bodyMedium),
+                      _StatusAvatar(iconUrl: widget.iconUrl),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              status.name ?? status.trackerId ?? 'Vehicle',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (subtitle.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  subtitle,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                'Last update: $updatedLabel',
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ),
+                          ],
                         ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text('Last update: $updatedLabel', style: theme.textTheme.bodySmall),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _DetailRow(label: 'Tracker ID', value: status.trackerId ?? '-'),
-            _DetailRow(label: 'Coordinates', value: coordinatesLabel),
-            _DetailRow(label: 'Altitude', value: status.altitude != null ? '${status.altitude!.toStringAsFixed(1)} m' : '-'),
-            _DetailRow(label: 'Satellites', value: status.satellites?.toString() ?? '-'),
-            _DetailRow(label: 'Accuracy', value: status.accuracy != null ? '${status.accuracy!.toStringAsFixed(1)} m' : '-'),
-            // Display priority sensors
-            if (prioritySensors.isNotEmpty) ..._buildSensorRows(prioritySensors),
-            // Show more/less button
-            if (hasMoreSensors)
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _showAllSensors = !_showAllSensors;
-                  });
-                },
-                child: Text(_showAllSensors ? 'Show Less' : 'Show More Sensors'),
-              ),
-            // Display all sensors when expanded
-            if (_showAllSensors) ..._buildSensorRows(sensors.skip(prioritySensors.length).toList()),
-            if (status.address != null && status.address!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Address',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              Text(status.address!, style: theme.textTheme.bodyMedium),
-            ],
-            const SizedBox(height: 16),
-            if (widget.onTrack != null || widget.onNavigate != null)
-              Row(
-                children: [
-                  if (widget.onTrack != null)
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: widget.onTrack,
-                        icon: const Icon(Icons.near_me_outlined),
-                        label: const Text('Track Vehicle'),
+                  const SizedBox(height: 16),
+                  _DetailRow(
+                    label: 'Tracker ID',
+                    value: status.trackerId ?? '-',
+                  ),
+                  _DetailRow(label: 'Coordinates', value: coordinatesLabel),
+                  _DetailRow(
+                    label: 'Altitude',
+                    value: status.altitude != null
+                        ? '${status.altitude!.toStringAsFixed(1)} m'
+                        : '-',
+                  ),
+                  _DetailRow(
+                    label: 'Satellites',
+                    value: status.satellites?.toString() ?? '-',
+                  ),
+                  _DetailRow(
+                    label: 'Accuracy',
+                    value: status.accuracy != null
+                        ? '${status.accuracy!.toStringAsFixed(1)} m'
+                        : '-',
+                  ),
+                  // Display priority sensors
+                  if (prioritySensors.isNotEmpty)
+                    ..._buildSensorRows(prioritySensors),
+                  // Show more/less button
+                  if (hasMoreSensors)
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _showAllSensors = !_showAllSensors;
+                        });
+                      },
+                      child: Text(
+                        _showAllSensors ? 'Show Less' : 'Show More Sensors',
                       ),
                     ),
-                  if (widget.onTrack != null && widget.onNavigate != null) const SizedBox(width: 12),
-                  if (widget.onNavigate != null)
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: widget.onNavigate,
-                        icon: const Icon(Icons.navigation_outlined),
-                        label: const Text('Navigate'),
+                  // Display all sensors when expanded
+                  if (_showAllSensors)
+                    ..._buildSensorRows(
+                      sensors.skip(prioritySensors.length).toList(),
+                    ),
+                  if (status.address != null && status.address!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Address',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                ],
-              ),
+                    const SizedBox(height: 4),
+                    Text(status.address!, style: theme.textTheme.bodyMedium),
+                  ],
+                  const SizedBox(height: 16),
+                  if (widget.onTrack != null || widget.onNavigate != null)
+                    Row(
+                      children: [
+                        if (widget.onTrack != null)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: widget.onTrack,
+                              icon: const Icon(Icons.near_me_outlined),
+                              label: const Text('Track Vehicle'),
+                            ),
+                          ),
+                        if (widget.onTrack != null && widget.onNavigate != null)
+                          const SizedBox(width: 12),
+                        if (widget.onNavigate != null)
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: widget.onNavigate,
+                              icon: const Icon(Icons.navigation_outlined),
+                              label: const Text('Navigate'),
+                            ),
+                          ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -159,7 +198,9 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
   }
 
   /// Get priority sensors to display first
-  List<TraxrootSensorModel> _getPrioritySensors(List<TraxrootSensorModel> sensors) {
+  List<TraxrootSensorModel> _getPrioritySensors(
+    List<TraxrootSensorModel> sensors,
+  ) {
     const priorityNames = [
       'Moving',
       'GSM Signal',
@@ -224,15 +265,15 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
     if (name.contains('gsm signal')) {
       return '$value/5';
     }
-    
+
     if (name.contains('coolant') || name.contains('intake air')) {
       return '$value°C';
     }
-    
+
     if (name.contains('battery') && !name.contains('vehicle')) {
       return '${value}V';
     }
-    
+
     if (name.contains('vehicle battery')) {
       final numValue = double.tryParse(value);
       if (numValue != null && numValue > 100) {
@@ -245,8 +286,38 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
     if (units != null && units.isNotEmpty) {
       return '$value $units';
     }
-    
+
     return value;
+  }
+}
+
+class _StatusAvatar extends StatelessWidget {
+  const _StatusAvatar({this.iconUrl});
+
+  final String? iconUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    const fallback = Icon(Icons.directions_bus_filled);
+
+    if (iconUrl == null || iconUrl!.isEmpty) {
+      return const CircleAvatar(child: fallback);
+    }
+
+    return CircleAvatar(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: CachedNetworkImage(
+          imageUrl: iconUrl!,
+          width: 40,
+          height: 40,
+          fit: BoxFit.contain,
+          placeholder: (_, __) => const Center(child: fallback),
+          errorWidget: (_, __, ___) => const Center(child: fallback),
+        ),
+      ),
+    );
   }
 }
 
@@ -267,15 +338,12 @@ class _DetailRow extends StatelessWidget {
             width: 110,
             child: Text(
               label,
-              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
         ],
       ),
     );

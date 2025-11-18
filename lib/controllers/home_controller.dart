@@ -206,6 +206,9 @@ class HomeController extends GetxController {
       isLoading.value = false;
       error.value = e.toString();
       Get.snackbar(
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+        icon: const Icon(Icons.error, color: Colors.white),
         'Error',
         'Failed to load map data.',
         snackPosition: SnackPosition.BOTTOM,

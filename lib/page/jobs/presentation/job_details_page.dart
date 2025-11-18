@@ -1704,7 +1704,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Tidak dapat membuka Google Maps: ${e.toString()}'),
+            content: Text('Unable to open Google Maps: ${e.toString()}'),
           ),
         );
       }

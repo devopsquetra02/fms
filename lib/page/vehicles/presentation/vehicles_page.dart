@@ -5,8 +5,15 @@ import 'package:fms/core/widgets/object_status_bottom_sheet.dart';
 import 'package:fms/controllers/vehicles_controller.dart';
 import 'package:fms/page/vehicles/presentation/vehicle_tracking_page.dart';
 
-class VehiclesPage extends StatelessWidget {
+class VehiclesPage extends StatefulWidget {
   const VehiclesPage({super.key});
+
+  @override
+  State<VehiclesPage> createState() => _VehiclesPageState();
+}
+
+class _VehiclesPageState extends State<VehiclesPage> {
+  final Map<int, String> _loadingActions = {};
 
   @override
   Widget build(BuildContext context) {
@@ -119,9 +126,13 @@ class VehiclesPage extends StatelessWidget {
                       ? controller.iconsById[iconId]?.url
                       : null;
                   final subtitle = vehicle.main?.comment;
-                  final isBusy =
-                      controller.loadingObjectId.value != null &&
-                      vehicle.id == controller.loadingObjectId.value;
+                  final vehicleId = vehicle.id;
+                  final isLoadingTrack =
+                      vehicleId != null &&
+                      _loadingActions[vehicleId] == 'track';
+                  final isLoadingDetail =
+                      vehicleId != null &&
+                      _loadingActions[vehicleId] == 'detail';
 
                   return Card(
                     child: ListTile(
@@ -133,37 +144,56 @@ class VehiclesPage extends StatelessWidget {
                       subtitle: subtitle != null && subtitle.isNotEmpty
                           ? Text(subtitle, style: theme.textTheme.bodyMedium)
                           : null,
-                      trailing: isBusy
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  tooltip: 'Track',
-                                  onPressed: vehicle.id == null
-                                      ? null
-                                      : () => _openVehicleTracking(
-                                          controller,
-                                          vehicle,
-                                        ),
-                                  icon: const Icon(Icons.near_me_outlined),
-                                ),
-                                IconButton(
-                                  tooltip: 'Detail',
-                                  onPressed: vehicle.id == null
-                                      ? null
-                                      : () => _showVehicleSummary(
-                                          controller,
-                                          vehicle,
-                                        ),
-                                  icon: const Icon(Icons.info_outline),
-                                ),
-                              ],
-                            ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Track',
+                            onPressed:
+                                vehicle.id == null ||
+                                    isLoadingTrack ||
+                                    isLoadingDetail
+                                ? null
+                                : () => _openVehicleTracking(
+                                    controller,
+                                    vehicle,
+                                    iconUrl,
+                                  ),
+                            icon: isLoadingTrack
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.near_me_outlined),
+                          ),
+                          IconButton(
+                            tooltip: 'Detail',
+                            onPressed:
+                                vehicle.id == null ||
+                                    isLoadingTrack ||
+                                    isLoadingDetail
+                                ? null
+                                : () => _showVehicleSummary(
+                                    context,
+                                    controller,
+                                    vehicle,
+                                    iconUrl,
+                                  ),
+                            icon: isLoadingDetail
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.info_outline),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -176,36 +206,94 @@ class VehiclesPage extends StatelessWidget {
   }
 
   Future<void> _showVehicleSummary(
+    BuildContext context,
     VehiclesController controller,
     vehicle,
+    String? iconUrl,
   ) async {
-    final status = await controller.fetchObjectStatus(vehicle);
-    if (status == null) return;
+    final vehicleId = vehicle.id;
+    if (vehicleId == null) return;
 
-    showModalBottomSheet(
-      context: Get.context!,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (_) => ObjectStatusBottomSheet(status: status),
-    );
+    setState(() {
+      _loadingActions[vehicleId] = 'detail';
+    });
+
+    try {
+      final status = await controller.fetchObjectStatus(vehicle);
+      if (status == null) return;
+
+      final enrichedStatus = status.name != null && status.name!.isNotEmpty
+          ? status
+          : status.copyWith(name: vehicle.name);
+
+      final resolvedIconUrl =
+          iconUrl ??
+          (vehicle.iconId != null
+              ? controller.iconsById[vehicle.iconId!]?.url
+              : null);
+
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        builder: (_) => ObjectStatusBottomSheet(
+          status: enrichedStatus,
+          iconUrl: resolvedIconUrl,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingActions.remove(vehicleId);
+        });
+      }
+    }
   }
 
   Future<void> _openVehicleTracking(
     VehiclesController controller,
     vehicle,
+    String? iconUrl,
   ) async {
-    final status = await controller.fetchObjectStatus(vehicle);
-    if (status == null) return;
+    final vehicleId = vehicle.id;
+    if (vehicleId == null) return;
 
-    Get.to(
-      () => VehicleTrackingPage(
-        vehicle: status,
-        iconUrl: vehicle.iconId != null
-            ? controller.iconsById[vehicle.iconId!]?.url
-            : null,
-      ),
-    );
+    setState(() {
+      _loadingActions[vehicleId] = 'track';
+    });
+
+    try {
+      final status = await controller.fetchObjectStatus(vehicle);
+      if (status == null) return;
+
+      final enrichedStatus = status.name != null && status.name!.isNotEmpty
+          ? status
+          : status.copyWith(name: vehicle.name);
+
+      if (!mounted) return;
+
+      final resolvedIconUrl =
+          iconUrl ??
+          (vehicle.iconId != null
+              ? controller.iconsById[vehicle.iconId!]?.url
+              : null);
+
+      Get.to(
+        () => VehicleTrackingPage(
+          vehicle: enrichedStatus,
+          iconUrl: resolvedIconUrl,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingActions.remove(vehicleId);
+        });
+      }
+    }
   }
 }
 
