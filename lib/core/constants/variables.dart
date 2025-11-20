@@ -69,6 +69,8 @@ class Variables {
   static const String prefCompanyID = 'CompanyID';
   static const String prefCompanyType = 'CompanyType';
   static const String prefCompanyLabel = 'CompanyLabel';
+  static const String prefTraxrootUsername = 'TraxrootUsername';
+  static const String prefTraxrootPassword = 'TraxrootPassword';
 
   static const String prefTraxrootToken = 'TraxrootAccessToken';
   static const String prefTraxrootTokenExpiry = 'TraxrootAccessTokenExpiry';

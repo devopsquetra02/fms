@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/variables.dart';
+import '../../core/services/traxroot_credentials_manager.dart';
 import '../models/traxroot_driver_model.dart';
 import '../models/traxroot_geozone_model.dart';
 import '../models/traxroot_icon_model.dart';
@@ -42,6 +43,8 @@ class TraxrootAuthDatasource {
   }
 
   Future<String> _requestAndCacheToken(SharedPreferences prefs) async {
+    final username = await TraxrootCredentialsManager.getUsername(prefs: prefs);
+    final password = await TraxrootCredentialsManager.getPassword(prefs: prefs);
     final response = await http.post(
       Uri.parse(Variables.traxrootTokenEndpoint),
       headers: {
@@ -49,8 +52,8 @@ class TraxrootAuthDatasource {
         'Accept': 'application/json',
       },
       body: jsonEncode({
-        'userName': Variables.traxrootUsername,
-        'password': Variables.traxrootPassword,
+        'userName': username,
+        'password': password,
         'subUserId': Variables.traxrootSubUserId,
         'language': Variables.traxrootLanguage,
       }),

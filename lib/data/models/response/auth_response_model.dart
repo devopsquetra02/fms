@@ -27,6 +27,8 @@ class Data {
   final int? companyId;
   final int? companyType;
   final String? companyLabel;
+  final String? usernameTraxroot;
+  final String? passwordTraxroot;
 
   Data({
     this.userId,
@@ -35,6 +37,8 @@ class Data {
     this.companyId,
     this.companyType,
     this.companyLabel,
+    this.usernameTraxroot,
+    this.passwordTraxroot,
   });
 
   factory Data.fromJson(String str) => Data.fromMap(json.decode(str));
@@ -48,6 +52,8 @@ class Data {
     companyId: json["CompanyID"],
     companyType: json["CompanyType"],
     companyLabel: json["CompanyLabel"],
+    usernameTraxroot: json["UsernameTraxrooot"],
+    passwordTraxroot: json["PasswordTraxrooot"],
   );
 
   Map<String, dynamic> toMap() => {
@@ -57,5 +63,7 @@ class Data {
     "CompanyID": companyId,
     "CompanyType": companyType,
     "CompanyLabel": companyLabel,
+    "UsernameTraxrooot": usernameTraxroot,
+    "PasswordTraxrooot": passwordTraxroot,
   };
 }

@@ -7,6 +7,7 @@ import 'package:fms/core/constants/variables.dart';
 import 'package:fms/data/datasource/auth_remote_datasource.dart';
 import 'package:fms/core/services/subscription.dart';
 import 'package:fms/core/network/api_client.dart';
+import 'package:fms/core/services/traxroot_credentials_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widget/auth_button.dart';
@@ -57,6 +58,8 @@ class _LoginPageState extends State<LoginPage> {
       final companyId = res.data?.companyId;
       final companyType = res.data?.companyType;
       final companyLabel = res.data?.companyLabel;
+      final usernameTraxroot = res.data?.usernameTraxroot;
+      final passwordTraxroot = res.data?.passwordTraxroot;
 
       if (apiKey == null || apiKey.isEmpty) {
         throw Exception('Error fetch data');
@@ -95,6 +98,12 @@ class _LoginPageState extends State<LoginPage> {
       if (companyLabel != null) {
         await prefs.setString(Variables.prefCompanyLabel, companyLabel);
       }
+
+      await TraxrootCredentialsManager.cache(
+        username: usernameTraxroot,
+        password: passwordTraxroot,
+        prefs: prefs,
+      );
 
       // Reset ApiClient logout flag for new login session
       ApiClient.resetLogoutFlag();
