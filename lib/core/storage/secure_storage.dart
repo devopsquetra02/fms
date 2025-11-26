@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Storage wrapper yang otomatis switch antara:
-/// - Debug mode: SharedPreferences (mudah di-debug)
-/// - Release mode: FlutterSecureStorage (aman)
+/// Storage wrapper that automatically switches between:
+/// - Debug mode: SharedPreferences (easy to debug)
+/// - Release mode: FlutterSecureStorage (secure)
 class SecureStorage {
   static final SecureStorage _instance = SecureStorage._internal();
   factory SecureStorage() => _instance;
@@ -24,7 +24,10 @@ class SecureStorage {
     }
   }
 
-  /// Write data
+  /// Writes a value to storage.
+  ///
+  /// [key] - The key to store the value under.
+  /// [value] - The value to store.
   Future<void> write(String key, String value) async {
     if (kDebugMode) {
       // Debug mode: gunakan SharedPreferences
@@ -38,7 +41,9 @@ class SecureStorage {
     }
   }
 
-  /// Read data
+  /// Reads a value from storage.
+  ///
+  /// [key] - The key to read the value from.
   Future<String?> read(String key) async {
     if (kDebugMode) {
       // Debug mode: gunakan SharedPreferences
@@ -54,7 +59,9 @@ class SecureStorage {
     }
   }
 
-  /// Delete data
+  /// Deletes a value from storage.
+  ///
+  /// [key] - The key to delete.
   Future<void> delete(String key) async {
     if (kDebugMode) {
       // Debug mode: gunakan SharedPreferences
@@ -68,7 +75,7 @@ class SecureStorage {
     }
   }
 
-  /// Clear all data
+  /// Clears all data from storage.
   Future<void> deleteAll() async {
     if (kDebugMode) {
       // Debug mode: gunakan SharedPreferences
@@ -82,7 +89,9 @@ class SecureStorage {
     }
   }
 
-  /// Check if key exists
+  /// Checks if a key exists in storage.
+  ///
+  /// [key] - The key to check.
   Future<bool> containsKey(String key) async {
     if (kDebugMode) {
       // Debug mode: gunakan SharedPreferences
@@ -95,7 +104,7 @@ class SecureStorage {
     }
   }
 
-  /// Get all keys
+  /// Gets all keys from storage.
   Future<Set<String>> getAllKeys() async {
     if (kDebugMode) {
       // Debug mode: gunakan SharedPreferences

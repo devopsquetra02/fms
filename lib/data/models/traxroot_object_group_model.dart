@@ -1,3 +1,4 @@
+/// Model representing a group of objects in Traxroot.
 class TraxrootObjectGroupModel {
   final String? id;
   final String? name;

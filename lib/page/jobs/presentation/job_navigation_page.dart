@@ -9,6 +9,7 @@ import '../../../data/models/traxroot_object_status_model.dart';
 import '../../vehicles/presentation/vehicle_tracking_page.dart';
 import '../controller/job_navigation_controller.dart';
 
+/// A page for navigating to a job location using a map.
 class JobNavigationPage extends StatefulWidget {
   final double latitude;
   final double longitude;

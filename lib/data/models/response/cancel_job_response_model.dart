@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for cancel job requests.
 class CancelJobResponseModel {
   final bool? success;
   final String? message;

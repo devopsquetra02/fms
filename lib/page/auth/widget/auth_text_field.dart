@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// Custom text field widget for authentication pages.
+///
+/// A styled text field with label, hint, validation, and optional icons.
 class AuthTextField extends StatelessWidget {
   final String label;
   final String? hint;

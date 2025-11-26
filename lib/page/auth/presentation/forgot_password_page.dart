@@ -6,6 +6,9 @@ import '../widget/auth_button.dart';
 import '../widget/auth_text_field.dart';
 import '../../../data/datasource/auth_remote_datasource.dart';
 
+/// Page for requesting a password reset.
+///
+/// Allows the user to enter their email address to receive a password reset link.
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
 

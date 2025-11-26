@@ -8,12 +8,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fms/page/auth/presentation/login_page.dart';
 import 'package:fms/core/storage/secure_storage.dart';
 
+/// Service for managing user sessions and handling unauthorized responses.
 class SessionService {
   SessionService._();
 
   static bool _isRedirecting = false;
   static final _storage = SecureStorage();
 
+  /// Checks if a response is unauthorized and handles redirection if necessary.
+  ///
+  /// Returns `true` if the response was unauthorized and handled.
   static Future<bool> handleUnauthorizedResponse(
     SharedPreferences prefs,
     http.Response response,

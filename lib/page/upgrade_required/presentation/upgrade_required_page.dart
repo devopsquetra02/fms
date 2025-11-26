@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// A page displayed when the user attempts to access a feature that requires a higher subscription plan.
+///
+/// This page informs the user that they do not have access and provides a button to upgrade their plan.
 class UpgradeRequiredPage extends StatelessWidget {
   const UpgradeRequiredPage({super.key});
 

@@ -5,6 +5,10 @@ import '../widget/auth_button.dart';
 import '../widget/auth_text_field.dart';
 import 'forgot_password_page.dart';
 
+/// Page for user login.
+///
+/// Displays a form for email and password entry, handles login validation,
+/// and provides navigation to the forgot password page.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 

@@ -1,9 +1,13 @@
 import 'package:get/get.dart';
 
+/// Controller for managing the bottom navigation bar state.
 class NavigationController extends GetxController {
   final RxInt selectedIndex = 0.obs;
   final RxList<String> _titles = <String>['Dashboard', 'Vehicles', 'Jobs'].obs;
 
+  /// Configures the available tabs based on the user's subscription status.
+  ///
+  /// [isPro] - Whether the user has a Pro subscription.
   void configureTabs({required bool isPro}) {
     final newTitles = isPro
         ? const ['Dashboard', 'Vehicles', 'Jobs']
@@ -17,6 +21,7 @@ class NavigationController extends GetxController {
     }
   }
 
+  /// Changes the currently selected tab index.
   void changeTab(int index) {
     if (index < 0 || index >= _titles.length) return;
     selectedIndex.value = index;

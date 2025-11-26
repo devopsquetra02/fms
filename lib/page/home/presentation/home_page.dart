@@ -10,6 +10,7 @@ import 'package:fms/data/models/traxroot_object_status_model.dart';
 
 import '../../../core/models/geo.dart';
 
+/// The main home tab widget displaying the dashboard and map.
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
@@ -17,6 +18,7 @@ class HomeTab extends StatefulWidget {
   State<HomeTab> createState() => _HomeTabState();
 }
 
+/// A full-screen map view page.
 class FullMapPage extends StatelessWidget {
   const FullMapPage({super.key});
 
@@ -244,17 +246,15 @@ class _HomeTabState extends State<HomeTab> {
                                     for (final moving in movingList)
                                       _MovingVehicleBanner(
                                         status: moving,
-                                        iconUrl:
-                                            moving.id != null
-                                                ? controller
-                                                    .iconUrlByObjectId[
-                                                        moving.id!]
-                                                : null,
+                                        iconUrl: moving.id != null
+                                            ? controller
+                                                  .iconUrlByObjectId[moving.id!]
+                                            : null,
                                         message: moving.id != null
                                             ? (controller
-                                                    .lastMovementTextByObjectId[
-                                                  moving.id!] ??
-                                                'is moving')
+                                                      .lastMovementTextByObjectId[moving
+                                                      .id!] ??
+                                                  'is moving')
                                             : 'is moving',
                                       ),
                                   ],

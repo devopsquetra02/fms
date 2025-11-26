@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 import 'package:fms/data/models/traxroot_sensor_model.dart';
 
+/// Bottom sheet widget that displays real-time status and sensor data
+/// for a tracked vehicle or object.
+///
+/// This sheet is typically opened from the map when a marker is tapped.
 class ObjectStatusBottomSheet extends StatefulWidget {
   final TraxrootObjectStatusModel status;
   final VoidCallback? onTrack;
@@ -23,7 +27,10 @@ class ObjectStatusBottomSheet extends StatefulWidget {
       _ObjectStatusBottomSheetState();
 }
 
+/// Internal state for [ObjectStatusBottomSheet] that builds the layout
+/// and handles toggling between priority sensors and the full sensor list.
 class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
+  /// Controls whether all sensors are shown, or only the priority subset.
   bool _showAllSensors = false;
 
   @override
@@ -114,6 +121,12 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
                   ),
                   _DetailRow(label: 'Coordinates', value: coordinatesLabel),
                   _DetailRow(
+                    label: 'Speed',
+                    value: status.speed != null
+                        ? '${status.speed!.toStringAsFixed(1)} km/h'
+                        : '-',
+                  ),
+                  _DetailRow(
                     label: 'Altitude',
                     value: status.altitude != null
                         ? '${status.altitude!.toStringAsFixed(1)} m'
@@ -200,43 +213,43 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
   }
 
   /// Get priority sensors to display first
+  /// Only returns sensors that have actual data from the API (from trends field)
   List<TraxrootSensorModel> _getPrioritySensors(
     List<TraxrootSensorModel> sensors,
   ) {
-    const priorityNames = [
-      'Moving',
-      'GSM Signal',
-      'Ignition',
-      'Ignition Sensor',
-      'Ignition sensor',
-      'Coolant Temp',
-      'Coolant temp',
-      'Device Battery',
-      'Device Unplugged',
-      'Fuel',
-      'Vehicle Battery',
-      'RPM',
-      'Intake Air Temp',
-      'Idling',
-      'Crash Detection',
-      'Crash Detected',
-    ];
+    // Filter only sensors that have a valid name
+    final namedSensors = sensors
+        .where((sensor) => sensor.name != null && sensor.name!.isNotEmpty)
+        .toList();
 
-    final priority = <TraxrootSensorModel>[];
-    final seen = <String>{};
+    // Sort alphabetically by name
+    namedSensors.sort(
+      (a, b) => a.name!.toLowerCase().compareTo(b.name!.toLowerCase()),
+    );
 
-    for (final name in priorityNames) {
-      final sensor = sensors.firstWhere(
-        (s) => s.name?.toLowerCase() == name.toLowerCase(),
-        orElse: () => const TraxrootSensorModel(),
-      );
-      if (sensor.name != null && !seen.contains(sensor.name!.toLowerCase())) {
-        priority.add(sensor);
-        seen.add(sensor.name!.toLowerCase());
-      }
+    return namedSensors;
+  }
+
+  /// Check if sensor has meaningful data to display
+  /// A sensor is meaningful if it has metadata (name, units) from the API trends
+  bool _hasMeaningfulData(TraxrootSensorModel sensor) {
+    // Must have a name (from trends)
+    if (sensor.name == null || sensor.name!.isEmpty) {
+      return false;
     }
 
-    return priority;
+    // If it has units defined in trends, it's a real sensor even without current value
+    if (sensor.units != null && sensor.units!.isNotEmpty) {
+      return true;
+    }
+
+    // If it has a value, show it
+    if (sensor.value != null && sensor.value!.isNotEmpty) {
+      return true;
+    }
+
+    // Otherwise, it's likely a placeholder
+    return false;
   }
 
   /// Build sensor rows
@@ -250,46 +263,13 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
 
   /// Format sensor value based on type
   String _formatSensorValue(TraxrootSensorModel sensor) {
-    if (sensor.value == null || sensor.value!.isEmpty) {
-      return '-';
-    }
-
-    final value = sensor.value!;
     final units = sensor.units;
-    final name = sensor.name?.toLowerCase() ?? '';
 
-    // Check if it's a boolean sensor (0/1)
-    if (sensor.isBoolean) {
-      return sensor.booleanDisplay;
-    }
-
-    // Format based on sensor type
-    if (name.contains('gsm signal')) {
-      return '$value/5';
-    }
-
-    if (name.contains('coolant') || name.contains('intake air')) {
-      return '$value°C';
-    }
-
-    if (name.contains('battery') && !name.contains('vehicle')) {
-      return '${value}V';
-    }
-
-    if (name.contains('vehicle battery')) {
-      final numValue = double.tryParse(value);
-      if (numValue != null && numValue > 100) {
-        return '${(numValue / 1000).toStringAsFixed(1)}V';
-      }
-      return '${value}V';
-    }
-
-    // Return value with units if available
     if (units != null && units.isNotEmpty) {
-      return '$value $units';
+      return '- $units';
     }
 
-    return value;
+    return '-';
   }
 }
 

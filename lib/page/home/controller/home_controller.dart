@@ -20,6 +20,7 @@ import 'package:home_widget/home_widget.dart';
 import 'package:fms/core/services/traxroot_credentials_manager.dart';
 import 'package:fms/core/navigation/navigation_controller.dart';
 
+/// Controller for the home screen, managing map data, jobs, and vehicle tracking.
 class HomeController extends GetxController {
   final _objectsDatasource = TraxrootObjectsDatasource(
     TraxrootAuthDatasource(),
@@ -58,6 +59,7 @@ class HomeController extends GetxController {
   int get ongoingJobsCount => ongoingJobsResponse.value?.data?.length ?? 0;
   int get completedJobsCount => completedJobsResponse.value?.data?.length ?? 0;
 
+  /// Fetches an object with its sensor data.
   Future<TraxrootObjectStatusModel?> getObjectWithSensors(int objectId) {
     return _objectsDatasource.getObjectWithSensors(objectId: objectId);
   }
@@ -68,6 +70,7 @@ class HomeController extends GetxController {
     loadData();
   }
 
+  /// Loads all initial data for the home screen.
   Future<void> loadData() async {
     isLoading.value = true;
     error.value = '';
@@ -216,10 +219,20 @@ class HomeController extends GetxController {
         }
 
         // Compose status model with data from both endpoints
+        // IMPORTANT: trackerId should match the trackerid field from /ObjectsStatus
+        // Usually this is the object's ID as a string
+        final trackerId = statusPoint.trackerId ?? objectId.toString();
+
+        // log(
+        //   'Initial Load - Object id=$objectId, name=$objectName, trackerId from API=${statusPoint.trackerId}, using trackerId=$trackerId',
+        //   name: 'HomeController.loadData',
+        //   level: 800,
+        // );
+
         final composed = TraxrootObjectStatusModel(
           id: objectId,
           name: objectName,
-          trackerId: statusPoint.trackerId,
+          trackerId: trackerId,
           latitude: lat,
           longitude: lon,
           address: statusPoint.address,
@@ -309,38 +322,67 @@ class HomeController extends GetxController {
     }
   }
 
+  /// Refreshes the status of tracked objects.
   Future<void> refreshStatuses() async {
     if (objects.isEmpty) {
       return;
     }
 
     try {
-      // log(
-      //   'refreshStatuses: requesting latest ObjectsStatus for \\${objects.length} tracked objects',
-      //   name: 'HomeController',
-      //   level: 800,
-      // );
+      log(
+        'Live Tracking - Refresh started for ${objects.length} tracked vehicles',
+        name: 'HomeController.refreshStatuses',
+        level: 800,
+      );
+
       final allStatuses = await _objectsDatasource.getAllObjectsStatus();
+
       if (allStatuses.isEmpty) {
-        // log(
-        //   'refreshStatuses: received 0 statuses from ObjectsStatus endpoint',
-        //   name: 'HomeController',
-        //   level: 900,
-        // );
+        log(
+          'Live Tracking - No statuses received from /ObjectsStatus',
+          name: 'HomeController.refreshStatuses',
+          level: 900,
+        );
         return;
       }
 
-      final statusByObjectId = <int, TraxrootObjectStatusModel>{};
+      log(
+        'Live Tracking - Received ${allStatuses.length} statuses from /ObjectsStatus',
+        name: 'HomeController.refreshStatuses',
+        level: 800,
+      );
+
+      // Build map by trackerId since /ObjectsStatus returns trackerid, not object ID
+      final statusByTrackerId = <String, TraxrootObjectStatusModel>{};
       for (final status in allStatuses) {
-        final id = status.id;
-        if (id != null) {
-          statusByObjectId[id] = status;
+        final trackerId = status.trackerId?.trim();
+        if (trackerId != null && trackerId.isNotEmpty) {
+          statusByTrackerId[trackerId] = status;
         }
+      }
+
+      log(
+        'Mapping trackerid - Built map with ${statusByTrackerId.length} unique trackerIds',
+        name: 'HomeController.refreshStatuses',
+        level: 800,
+      );
+
+      // Log first 5 trackerIds to verify format
+      final sampleTrackerIds = statusByTrackerId.keys.take(5).toList();
+      if (sampleTrackerIds.isNotEmpty) {
+        log(
+          'Mapping trackerid - Sample trackerIds from /ObjectsStatus: $sampleTrackerIds',
+          name: 'HomeController.refreshStatuses',
+          level: 800,
+        );
       }
 
       final updatedStatuses = <TraxrootObjectStatusModel>[];
       final updatedMarkers = <MapMarkerModel>[];
       final usedIconUrls = <String>{};
+      int matchedCount = 0;
+      int unmatchedCount = 0;
+      int positionChangedCount = 0;
 
       for (final previous in objects) {
         final objectId = previous.id;
@@ -348,14 +390,49 @@ class HomeController extends GetxController {
           continue;
         }
 
-        final latest = statusByObjectId[objectId];
+        // Try to find matching status by trackerId
+        TraxrootObjectStatusModel? latest;
+        final previousTrackerId = previous.trackerId?.trim();
+        if (previousTrackerId != null && previousTrackerId.isNotEmpty) {
+          latest = statusByTrackerId[previousTrackerId];
+
+          if (latest != null) {
+            matchedCount++;
+
+            // Check if position changed
+            final posChanged =
+                previous.latitude != latest.latitude ||
+                previous.longitude != latest.longitude;
+            final angChanged = previous.course != latest.course;
+
+            if (posChanged || angChanged) {
+              positionChangedCount++;
+              log(
+                'Position Update - Vehicle objectId=$objectId, trackerId=$previousTrackerId: '
+                'lat: ${previous.latitude} → ${latest.latitude}, '
+                'lng: ${previous.longitude} → ${latest.longitude}, '
+                'ang: ${previous.course} → ${latest.course}',
+                name: 'HomeController.refreshStatuses',
+                level: 800,
+              );
+            }
+          } else {
+            unmatchedCount++;
+            log(
+              'Mapping trackerid - No match found for objectId=$objectId, trackerId=$previousTrackerId',
+              name: 'HomeController.refreshStatuses',
+              level: 900,
+            );
+          }
+        }
+
         final composed = latest == null
             ? previous
             : previous.copyWith(
                 latitude: latest.latitude,
                 longitude: latest.longitude,
                 speed: latest.speed,
-                course: latest.course,
+                course: latest.course, // This is the 'ang' field from API
                 altitude: latest.altitude,
                 status: latest.status,
                 address: latest.address,
@@ -376,23 +453,38 @@ class HomeController extends GetxController {
         }
       }
 
+      log(
+        'State Update - Matched: $matchedCount, Unmatched: $unmatchedCount, Position Changed: $positionChangedCount',
+        name: 'HomeController.refreshStatuses',
+        level: 800,
+      );
+
       markers.value = updatedMarkers;
       objects.value = updatedStatuses;
+
+      log(
+        'State Update - Updated ${updatedStatuses.length} vehicle objects and ${updatedMarkers.length} map markers',
+        name: 'HomeController.refreshStatuses',
+        level: 800,
+      );
+
       await _detectMovement(updatedStatuses);
       _precacheIcons(usedIconUrls);
       _updateWidgets();
-      // log(
-      //   'refreshStatuses: updated \\${updatedStatuses.length} objects and \\${updatedMarkers.length} markers',
-      //   name: 'HomeController',
-      //   level: 800,
-      // );
+
+      log(
+        'Live Tracking - Refresh completed successfully',
+        name: 'HomeController.refreshStatuses',
+        level: 800,
+      );
     } catch (e, st) {
       log(
-        'refreshStatuses error: \\${e.toString()}',
-        name: 'HomeController',
+        'Live Tracking - Error during refresh: ${e.toString()}',
+        name: 'HomeController.refreshStatuses',
         level: 1000,
+        error: e,
+        stackTrace: st,
       );
-      log(st.toString(), name: 'HomeController', level: 1000);
       // Ignore refresh errors to keep home map stable
     }
   }
@@ -456,6 +548,30 @@ class HomeController extends GetxController {
       final typeDesc = rawTypeDesc?.toString().toUpperCase();
       final text = rawText?.toString().trim() ?? '';
 
+      // Parse event time so we can drop stale events and timestamp notifications
+      DateTime? eventTime;
+      final rawTime = event['time'];
+      if (rawTime is int) {
+        try {
+          eventTime = DateTime.fromMillisecondsSinceEpoch(rawTime);
+        } catch (_) {}
+      } else if (rawTime is String) {
+        final millis = int.tryParse(rawTime.trim());
+        if (millis != null && millis > 0) {
+          try {
+            eventTime = DateTime.fromMillisecondsSinceEpoch(millis);
+          } catch (_) {}
+        }
+      }
+
+      // Ignore events that are too old compared to now. We keep a generous
+      // window (60 seconds) so we don't miss new events between polling
+      // intervals, but still avoid replaying very old events on app start.
+      final cutoff = now.subtract(const Duration(seconds: 60));
+      if (eventTime != null && eventTime.isBefore(cutoff)) {
+        continue;
+      }
+
       final isMove =
           typeDesc == 'MOVE' || text.toLowerCase().contains('moving');
       if (!isMove) {
@@ -473,6 +589,8 @@ class HomeController extends GetxController {
         _lastMovementEventIdByObjectId[objectId] = eventId;
       }
 
+      // Use the time we *saw* the event (now) for expiry, so notifications
+      // disappear a few seconds after being shown, regardless of server time.
       _lastMovementTimeByObjectId[objectId] = now;
       if (text.isNotEmpty) {
         lastMovementTextByObjectId[objectId] = text;
@@ -482,15 +600,25 @@ class HomeController extends GetxController {
 
       log(
         'Movement event: trackerId=$trackerId, objectId=$objectId, type=$typeDesc, text=${lastMovementTextByObjectId[objectId]}',
-        name: 'HomeController',
+        name: 'HomeController._detectMovement',
         level: 800,
       );
 
       final index = movingObjects.indexWhere((e) => e.id == objectId);
       if (index >= 0) {
         movingObjects[index] = status;
+        log(
+          'Notification - Updated existing notification for vehicle objectId=$objectId',
+          name: 'HomeController._detectMovement',
+          level: 800,
+        );
       } else {
         movingObjects.add(status);
+        log(
+          'Notification - Triggered new homepage notification for vehicle objectId=$objectId (${status.name ?? trackerId})',
+          name: 'HomeController._detectMovement',
+          level: 800,
+        );
       }
     }
 
@@ -506,11 +634,13 @@ class HomeController extends GetxController {
     });
   }
 
+  /// Clears the list of moving objects.
   void clearMovementNotification() {
     movingObjects.clear();
     lastMovementTextByObjectId.clear();
   }
 
+  /// Finds the status model associated with a map marker.
   TraxrootObjectStatusModel? findStatusForMarker(MapMarkerModel marker) {
     final data = marker.data;
     if (data is TraxrootObjectStatusModel) {
@@ -578,6 +708,7 @@ class HomeController extends GetxController {
     }
   }
 
+  /// Resets the controller state.
   void reset() {
     isLoading.value = false;
     error.value = '';

@@ -10,10 +10,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fms/core/constants/variables.dart';
 import 'package:fms/data/datasource/auth_remote_datasource.dart';
 
+/// Datasource for handling Firebase Cloud Messaging (Push Notifications).
 class FirebaseMessangingRemoteDatasource {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
+  /// Initializes Firebase Messaging and requests permissions.
   Future<void> initialize() async {
     final permissionStatus = await Permission.notification.status;
     if (!permissionStatus.isGranted) {
@@ -84,6 +86,7 @@ class FirebaseMessangingRemoteDatasource {
     FirebaseMessaging.onMessageOpenedApp.listen(firebaseBackgroundHandler);
   }
 
+  /// Shows a local notification.
   Future showNotification({
     int id = 0,
     String? title,

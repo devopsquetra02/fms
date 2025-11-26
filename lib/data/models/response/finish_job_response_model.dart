@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for finish job requests.
 class FinishJobResponseModel {
   final bool? success;
   final String? message;

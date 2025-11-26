@@ -1,3 +1,4 @@
+/// Comprehensive model representing a Traxroot object with all its details.
 class TraxrootObjectModel {
   final TraxrootObjectMain? main;
   final TraxrootObjectService? service;
@@ -83,6 +84,7 @@ class TraxrootObjectModel {
   }
 }
 
+/// Main details of a Traxroot object.
 class TraxrootObjectMain {
   final int? id;
   final String? name;
@@ -169,6 +171,7 @@ class TraxrootObjectMain {
   }
 }
 
+/// Service details of a Traxroot object.
 class TraxrootObjectService {
   final int? createdAt;
   final int? installedAt;
@@ -224,6 +227,7 @@ class TraxrootObjectService {
   }
 }
 
+/// Safety details of a Traxroot object.
 class TraxrootObjectSafety {
   final String? contract;
   final String? password;
@@ -267,6 +271,7 @@ class TraxrootObjectSafety {
   }
 }
 
+/// Odometer details of a Traxroot object.
 class TraxrootObjectOdometer {
   final int? distance;
   final int? engineTime;

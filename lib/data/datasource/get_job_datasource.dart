@@ -9,13 +9,15 @@ import '../../core/constants/variables.dart';
 import '../../core/services/session_service.dart';
 import '../models/response/get_job_response_model.dart';
 
+/// Datasource for fetching the list of jobs.
 class GetJobDatasource {
+  /// Fetches the list of jobs available for the user.
   Future<GetJobResponseModel> getJob() async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString(Variables.prefApiKey);
 
     if (apiKey == null) {
-      throw Exception('API Key not found');
+      SessionService;
     }
 
     final uri = Uri.parse(

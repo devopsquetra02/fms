@@ -8,6 +8,7 @@ import '../../../data/datasource/traxroot_datasource.dart';
 import '../../../data/models/traxroot_geozone_model.dart';
 import '../../../data/models/traxroot_object_status_model.dart';
 
+/// Controller for handling navigation to a job location.
 class JobNavigationController extends GetxController {
   final _objectsDatasource = TraxrootObjectsDatasource(
     TraxrootAuthDatasource(),
@@ -19,6 +20,7 @@ class JobNavigationController extends GetxController {
   final RxList<MapZoneModel> zones = <MapZoneModel>[].obs;
   final RxnString error = RxnString();
 
+  /// Loads navigation data, including the job marker and surrounding objects/zones.
   Future<List<String>> loadData({
     required GeoPoint jobPoint,
     required String jobName,

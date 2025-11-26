@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for fetching available jobs.
 class GetJobResponseModel {
   final bool? success;
   final List<Data>? data;
@@ -32,6 +33,7 @@ double? _parseDouble(dynamic value) {
   return null;
 }
 
+/// Data object representing an available job.
 class Data {
   final int? jobId;
   final String? jobName;

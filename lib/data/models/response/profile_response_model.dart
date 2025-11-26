@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for fetching user profile.
 class ProfileResponseModel {
   final bool? success;
   final Data? data;
@@ -20,6 +21,7 @@ class ProfileResponseModel {
   Map<String, dynamic> toMap() => {"Success": success, "Data": data?.toMap()};
 }
 
+/// Data object containing user profile details.
 class Data {
   final String? fullname;
   final String? email;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:fms/core/models/geo.dart';
 
+/// A map widget implementation using `google_maps_flutter`.
 class GoogleMapWidget extends StatefulWidget {
   final GeoPoint center;
   final double zoom;
@@ -31,6 +32,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           (m) => Marker(
             markerId: MarkerId(m.id),
             position: LatLng(m.position.lat, m.position.lng),
+            rotation: m.rotation ?? 0.0, // Apply rotation from ang field
             infoWindow: InfoWindow(
               title: m.title,
               snippet: m.subtitle,

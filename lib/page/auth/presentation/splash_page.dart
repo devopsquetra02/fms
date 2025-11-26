@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../nav_bar.dart';
 
+/// Splash screen displayed on app startup.
+///
+/// Shows an animated logo while the app initializes, then navigates to the main screen.
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 

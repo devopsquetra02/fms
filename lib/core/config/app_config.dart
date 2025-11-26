@@ -1,3 +1,6 @@
+/// Configuration class for the application.
+///
+/// This class holds configuration values such as API keys and environment variables.
 class AppConfig {
   AppConfig._();
 

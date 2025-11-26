@@ -3,7 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+/// Helper class for managing application permissions.
 class AppPermission {
+  /// Ensures that the application has permission to access photos/storage.
+  ///
+  /// Returns `true` if permission is granted, `false` otherwise.
   static Future<bool> ensurePhotosPermission(BuildContext context) async {
     if (Platform.isIOS) {
       final status = await Permission.photos.request();

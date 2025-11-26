@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for authentication requests.
 class AuthResponseModel {
   final bool? success;
   final Data? data;
@@ -20,6 +21,7 @@ class AuthResponseModel {
   Map<String, dynamic> toMap() => {"Success": success, "Data": data?.toMap()};
 }
 
+/// Data object containing user and company information.
 class Data {
   final int? userId;
   final String? apiKey;

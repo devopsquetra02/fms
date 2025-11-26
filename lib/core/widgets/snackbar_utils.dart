@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Utility class for showing consistent SnackBars across the app.
 class SnackbarUtils {
   final String text;
   final Color backgroundColor;
@@ -47,6 +48,7 @@ class SnackbarUtils {
     );
   }
 
+  /// Shows a success SnackBar.
   void showSuccessSnackBar(
     BuildContext context, {
     String? actionLabel,
@@ -60,6 +62,7 @@ class SnackbarUtils {
     );
   }
 
+  /// Shows an error SnackBar.
   void showErrorSnackBar(
     BuildContext context, {
     String? actionLabel,

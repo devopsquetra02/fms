@@ -9,9 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/network/api_client.dart';
 
-// Note: Auth endpoints use http directly, not ApiClient,
-// because company validation is not needed for login/logout
+/// Remote datasource for authentication-related operations.
+///
+/// Note: Auth endpoints use http directly, not ApiClient,
+/// because company validation is not needed for login/logout.
 class AuthRemoteDataSource {
+  /// Logs in the user with email and password.
+  ///
+  /// Returns [AuthResponseModel] if successful.
   Future<AuthResponseModel> login({
     required String email,
     required String password,
@@ -54,6 +59,7 @@ class AuthRemoteDataSource {
     }
   }
 
+  /// Sends a forgot password request.
   Future<String> forgotPassword({required String email}) async {
     final uri = Uri.parse(Variables.forgotPasswordEndpoint);
     final response = await http.post(
@@ -95,7 +101,7 @@ class AuthRemoteDataSource {
     }
   }
 
-  //logout to remove all data from shared preferences
+  /// Logs out the user and clears local data.
   Future<String> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -107,6 +113,7 @@ class AuthRemoteDataSource {
     return 'Logout successful';
   }
 
+  /// Updates the FCM token for push notifications.
   Future<void> updateFcmToken(String fcmToken) async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString(Variables.prefApiKey);

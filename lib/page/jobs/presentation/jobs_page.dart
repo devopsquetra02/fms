@@ -9,6 +9,8 @@ import 'package:fms/data/models/response/get_job_history__response_model.dart'
 import '../widget/job_summary_card.dart';
 import 'job_history_detail_page.dart';
 
+/// Displays a tabbed list of jobs for the driver, including all, ongoing,
+/// and history jobs. Each tab uses reactive data from [JobsController].
 class JobsPage extends StatelessWidget {
   const JobsPage({super.key});
 
@@ -43,6 +45,8 @@ class JobsPage extends StatelessWidget {
     );
   }
 
+  /// Shows a centered text message inside a [RefreshIndicator] so that
+  /// users can pull to refresh when a list is empty or an error occurs.
   Widget _buildRefreshableMessage(JobsController controller, String message) {
     return RefreshIndicator(
       onRefresh: controller.refresh,
@@ -63,6 +67,9 @@ class JobsPage extends StatelessWidget {
     );
   }
 
+  /// Builds the list of all available jobs.
+  ///
+  /// Only jobs with a job date that is today or earlier are shown.
   Widget _getAllJob(JobsController controller, BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final accent = colorScheme.primary;
@@ -82,16 +89,31 @@ class JobsPage extends StatelessWidget {
         return _buildRefreshableMessage(controller, 'No jobs found');
       }
 
+      final allJobs = controller.allJobsResponse.value!.data!;
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      final visibleJobs = allJobs.where((job) {
+        final jobDate = job.jobDate;
+        if (jobDate == null) return true;
+        final jobOnlyDate = DateTime(jobDate.year, jobDate.month, jobDate.day);
+        return !jobOnlyDate.isAfter(today);
+      }).toList();
+
+      if (visibleJobs.isEmpty) {
+        return _buildRefreshableMessage(controller, 'No jobs found');
+      }
+
       return RefreshIndicator(
         onRefresh: controller.refresh,
         triggerMode: RefreshIndicatorTriggerMode.anywhere,
         child: ListView.separated(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
-          itemCount: controller.allJobsResponse.value!.data!.length,
+          itemCount: visibleJobs.length,
           separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
-            final job = controller.allJobsResponse.value!.data![index];
+            final job = visibleJobs[index];
             return JobSummaryCard(
               title: job.jobName ?? 'Untitled Job',
               customerName: job.customerName,
@@ -116,6 +138,8 @@ class JobsPage extends StatelessWidget {
     });
   }
 
+  /// Builds the list of ongoing jobs that are currently being processed
+  /// by the driver, including rescheduled jobs.
   Widget _getOngoingJob(JobsController controller, BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final accent = colorScheme.primary;
@@ -186,6 +210,7 @@ class JobsPage extends StatelessWidget {
     });
   }
 
+  /// Builds the list of completed jobs (history tab).
   Widget _getHistoryJob(JobsController controller, BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final accent = colorScheme.primary;
@@ -239,6 +264,7 @@ class JobsPage extends StatelessWidget {
     });
   }
 
+  /// Maps the numeric job type from the backend into a readable label.
   String _getJobTypeString(int? type) {
     switch (type) {
       case 1:
@@ -254,6 +280,7 @@ class JobsPage extends StatelessWidget {
     }
   }
 
+  /// Creates a badge widget that visually represents the job type.
   JobCardBadge _buildJobTypeBadge(BuildContext context, int? type) {
     final typeString = _getJobTypeString(type);
     final accent = Theme.of(context).colorScheme.primary;
@@ -266,6 +293,7 @@ class JobsPage extends StatelessWidget {
     );
   }
 
+  /// Creates a badge widget that visually represents the job status.
   JobCardBadge _buildStatusBadge({
     required String label,
     required Color color,
@@ -280,6 +308,10 @@ class JobsPage extends StatelessWidget {
     );
   }
 
+  /// Navigates to the job details page.
+  ///
+  /// When the details page returns with a `refresh` flag, the job lists
+  /// are refreshed and the tab is optionally switched to the ongoing tab.
   void _openJobDetails(dynamic job, {bool isOngoing = false}) async {
     final result = await Get.to(
       () => JobDetailsPage(job: job, isOngoing: isOngoing),
@@ -297,16 +329,20 @@ class JobsPage extends StatelessWidget {
     }
   }
 
+  /// Navigates to the job history detail page for the given completed job.
   void _openHistoryDetails(history.Data job) {
     Get.to(() => JobHistoryDetailPage(job: job));
   }
 
+  /// Formats a dynamic date value from the API into a short readable label.
   String _formatDate(dynamic value) {
     final dateTime = _parseDate(value);
     if (dateTime == null) return 'N/A';
     return DateFormat('EEE, dd MMM yyyy').format(dateTime);
   }
 
+  /// Parses different possible date representations (DateTime, String, int)
+  /// returned by the backend into a [DateTime] instance when possible.
   DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
     if (value is DateTime) return value;

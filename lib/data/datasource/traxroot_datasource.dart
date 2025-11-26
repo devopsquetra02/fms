@@ -14,8 +14,11 @@ import '../models/traxroot_object_status_model.dart';
 import '../models/traxroot_object_group_model.dart';
 import '../models/traxroot_sensor_model.dart';
 
+/// Datasource for Traxroot authentication.
 class TraxrootAuthDatasource {
   static String? lastErrorMessage;
+
+  /// Gets a valid access token, refreshing if necessary.
   Future<String> getAccessToken({bool forceRefresh = false}) async {
     final prefs = await SharedPreferences.getInstance();
     if (!forceRefresh) {
@@ -117,11 +120,13 @@ class TraxrootAuthDatasource {
   }
 }
 
+/// Datasource for fetching Traxroot objects and data.
 class TraxrootObjectsDatasource {
   TraxrootObjectsDatasource(this._authDatasource);
 
   final TraxrootAuthDatasource _authDatasource;
 
+  /// Gets the status of a specific object by ID.
   Future<TraxrootObjectStatusModel> getObjectStatus({
     required int objectId,
   }) async {
@@ -151,28 +156,155 @@ class TraxrootObjectsDatasource {
     return TraxrootObjectStatusModel.fromMap(map);
   }
 
+  /// Gets the status of all objects.
   Future<List<TraxrootObjectStatusModel>> getAllObjectsStatus() async {
+    log(
+      'Fetching /ObjectsStatus - Request started',
+      name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+      level: 800,
+    );
+
     final uri = Uri.parse(Variables.traxrootObjectsStatusEndpoint);
     final response = await _authorizedGet(uri);
 
     log(
-      'status: ${response.statusCode}',
-      name: 'TraxrootObjectsDatasource.getAll',
+      'Fetching /ObjectsStatus - Response status: ${response.statusCode}',
+      name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
       level: 800,
     );
-    // log(response.body, name: 'TraxrootObjectsDatasource.getAll', level: 900);
 
     if (response.statusCode != 200) {
-      log(response.body, name: 'TraxrootObjectsDatasource.getAll', level: 1200);
+      log(
+        'Fetching /ObjectsStatus - Failed with status ${response.statusCode}: ${response.body}',
+        name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+        level: 1200,
+      );
       return [];
     }
 
-    final decoded = _decodeTraxrootBody(response.body);
-    if (decoded == null) {
+    try {
+      dynamic decoded = _decodeTraxrootBody(response.body);
+
+      // Some Traxroot responses wrap JSON in strings; try decoding again if needed
+      if (decoded is String) {
+        dynamic reparsed =
+            _decodeTraxrootBody(decoded) ?? _attemptJsonDecode(decoded);
+
+        // If still null, try to salvage by taking the substring between
+        // the first '{' and the last '}' – this often strips trailing junk.
+        if (reparsed == null) {
+          final raw = decoded;
+          final start = raw.indexOf('{');
+          final end = raw.lastIndexOf('}');
+          if (start != -1 && end > start) {
+            final candidate = raw.substring(start, end + 1);
+            reparsed = _attemptJsonDecode(candidate);
+          }
+        }
+
+        if (reparsed != null) {
+          decoded = reparsed;
+        } else {
+          final snippet = decoded.length > 200
+              ? decoded.substring(0, 200)
+              : decoded;
+          // log(
+          //   'Parsing /ObjectsStatus - Decoded body is still String after reparsing. Snippet: $snippet',
+          //   name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+          //   level: 1000,
+          // );
+        }
+      }
+
+      if (decoded == null) {
+        log(
+          'Parsing /ObjectsStatus - Failed to decode response body',
+          name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+          level: 1200,
+        );
+        return [];
+      }
+
+      log(
+        'Parsing /ObjectsStatus - Decoded response type: ${decoded.runtimeType}',
+        name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+        level: 800,
+      );
+
+      // Log the structure to understand what we're receiving
+      if (decoded is Map<String, dynamic>) {
+        log(
+          'Parsing /ObjectsStatus - Response keys: ${decoded.keys.toList()}',
+          name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+          level: 800,
+        );
+
+        // Check if points exist and log its type/length
+        final pointsRaw = decoded['points'] ?? decoded['Points'];
+        if (pointsRaw != null) {
+          log(
+            'Parsing /ObjectsStatus - Found points field, type: ${pointsRaw.runtimeType}',
+            name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+            level: 800,
+          );
+          if (pointsRaw is List) {
+            log(
+              'Parsing /ObjectsStatus - Points array length: ${pointsRaw.length}',
+              name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+              level: 800,
+            );
+          }
+        } else {
+          log(
+            'Parsing /ObjectsStatus - No "points" or "Points" field found in response',
+            name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+            level: 1000,
+          );
+        }
+      }
+
+      log(
+        'Parsing /ObjectsStatus - Extracting points array via _extractStatusList',
+        name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+        level: 800,
+      );
+
+      final list = _extractStatusList(decoded);
+
+      log(
+        'Parsing /ObjectsStatus - Extracted ${list.length} status objects from points array',
+        name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+        level: 800,
+      );
+
+      // If we got 0 results, log the first few items to debug
+      if (list.isEmpty && decoded is Map) {
+        log(
+          'Parsing /ObjectsStatus - WARNING: 0 items extracted. Raw decoded keys: ${decoded.keys.take(10).toList()}',
+          name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+          level: 1000,
+        );
+      }
+
+      final result = list.map(TraxrootObjectStatusModel.fromMap).toList();
+
+      log(
+        'Fetching /ObjectsStatus - Success: Parsed ${result.length} vehicle statuses',
+        name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+        level: 800,
+      );
+
+      return result;
+    } catch (e, st) {
+      log(
+        'Parsing /ObjectsStatus - Exception during parsing: $e',
+        name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+        level: 1200,
+        error: e,
+        stackTrace: st,
+      );
       return [];
     }
-    final list = _extractStatusList(decoded);
-    return list.map(TraxrootObjectStatusModel.fromMap).toList();
   }
 
   Future<List<Map<String, dynamic>>> getAllEvents() async {
@@ -195,13 +327,51 @@ class TraxrootObjectsDatasource {
     }
 
     final decoded = _decodeTraxrootBody(response.body);
-    if (decoded is! Map<String, dynamic>) {
-      return const [];
+
+    // Normal path: decoded body is a map with an events array
+    if (decoded is Map<String, dynamic>) {
+      final eventsRaw = decoded['events'] ?? decoded['Events'];
+      final eventsList = _normalizeDynamicList(eventsRaw);
+      return eventsList;
     }
 
-    final eventsRaw = decoded['events'] ?? decoded['Events'];
-    final eventsList = _normalizeDynamicList(eventsRaw);
-    return eventsList;
+    // Special case: body is still a String with loose JSON containing
+    // an "events" array, similar to how points are embedded.
+    if (decoded is String && decoded.contains('"events"')) {
+      final raw = decoded;
+
+      // Extract all event objects that have trackerid + typedesc/text
+      final regex = RegExp(
+        r'\{[^{}]*"trackerid"[^{}]*"type"[^{}]*"text"[^{}]*\}',
+      );
+      final matches = regex.allMatches(raw).toList();
+      if (matches.isEmpty) {
+        return const [];
+      }
+
+      final results = <Map<String, dynamic>>[];
+      for (final m in matches) {
+        final text = m.group(0);
+        if (text == null) continue;
+        final parsed = _attemptJsonDecode(text);
+        if (parsed is Map) {
+          final map = _normalizeDynamicMap(parsed);
+          if (map != null) {
+            results.add(map);
+          }
+        }
+      }
+
+      log(
+        'Parsing /ObjectsStatus.events - Extracted ${results.length} events from String payload via regex',
+        name: 'TraxrootObjectsDatasource.getAllEvents',
+        level: 800,
+      );
+
+      return results;
+    }
+
+    return const [];
   }
 
   Future<TraxrootObjectStatusModel?> getLatestPoint({
@@ -533,87 +703,23 @@ class TraxrootObjectsDatasource {
       level: 800,
     );
 
-    // Create sensor models with sample values based on sensor type
-    final sensors = sensorMetadata.map((t) {
-      final sensorMap = Map<String, dynamic>.from(t);
-      // Handle both 'itemid' and 'input' field names
-      final itemId =
-          sensorMap['itemid']?.toString() ??
-          sensorMap['input']?.toString() ??
-          '';
-      final name = sensorMap['name']?.toString() ?? '';
+    // Create sensor models from trends metadata
+    // Only include sensors that have unique/meaningful data (name, units)
+    // Do not add placeholder values - only show real data from API
+    final sensors = sensorMetadata
+        .map((t) {
+          final sensorMap = Map<String, dynamic>.from(t);
+          return TraxrootSensorModel.fromMap(sensorMap);
+        })
+        .where((sensor) {
+          // Only include sensors with name (metadata from trends)
+          final hasName = sensor.name != null && sensor.name!.isNotEmpty;
 
-      // Add sample values based on sensor type
-      if (!sensorMap.containsKey('value') || sensorMap['value'] == null) {
-        sensorMap['value'] = _getSampleSensorValue(itemId, name);
-      }
-
-      return TraxrootSensorModel.fromMap(sensorMap);
-    }).toList();
+          return hasName;
+        })
+        .toList();
 
     return status.copyWith(sensors: sensors);
-  }
-
-  /// Get sample sensor value based on sensor type
-  String _getSampleSensorValue(String itemId, String name) {
-    final nameLower = name.toLowerCase();
-
-    // Boolean sensors (0 or 1)
-    if (nameLower.contains('moving')) {
-      return '1'; // Moving
-    }
-    if (itemId == 'IN239' || nameLower.contains('ignition')) {
-      return '1'; // Ignition ON
-    }
-    if (itemId == 'IN251' || nameLower.contains('idling')) {
-      return '0'; // Not idling
-    }
-    if (itemId == 'IN252' ||
-        nameLower.contains('device status') ||
-        nameLower.contains('device unplugged')) {
-      return '1'; // Device active
-    }
-    if (itemId == 'IN247' || itemId == 'IN257' || nameLower.contains('crash')) {
-      return '0'; // No crash
-    }
-
-    // Numeric sensors
-    if (itemId == 'IN21' || nameLower.contains('gsm signal')) {
-      return '4'; // Signal strength 4/5
-    }
-    if (itemId == 'IN32' || nameLower.contains('coolant')) {
-      return '75'; // 75°C
-    }
-    if (itemId == 'IN390' || nameLower.contains('fuel')) {
-      return '45.5'; // 45.5 Liters
-    }
-    if (itemId == 'IN36' || nameLower.contains('rpm')) {
-      return '1850'; // 1850 RPM
-    }
-    if (itemId == 'PWR' || nameLower.contains('vehicle battery')) {
-      return '13.8'; // 13.8V
-    }
-    if (itemId == 'BATT' || nameLower.contains('device battery')) {
-      return '4.1'; // 4.1V
-    }
-    if (itemId == 'ACCEL' || nameLower.contains('harsh acceleration')) {
-      return '0'; // No harsh acceleration
-    }
-    if (itemId == 'BREAK_ACCEL' ||
-        itemId == 'VACCEL' ||
-        nameLower.contains('harsh break')) {
-      return '0'; // No harsh braking
-    }
-    if (itemId == 'TURN_ACCEL' ||
-        nameLower.contains('harsh turn') ||
-        nameLower.contains('harsh corner')) {
-      return '0'; // No harsh cornering
-    }
-    if (nameLower.contains('intake air')) {
-      return '28'; // 28°C
-    }
-
-    return ''; // No value
   }
 
   Future<http.Response> _authorizedGet(Uri uri) async {
@@ -657,6 +763,40 @@ Map<String, dynamic> _extractSingleStatus(dynamic payload) {
 }
 
 List<Map<String, dynamic>> _extractStatusList(dynamic payload) {
+  // Special case: some /ObjectsStatus responses come back as a *string* that
+  // contains a JSON object like {"points":[{...},{...}]}. Our generic
+  // decoders can fail on this, so we try a lightweight manual extractor.
+  if (payload is String && payload.contains('"points"')) {
+    final raw = payload;
+
+    // Find all point objects that contain trackerid + lat + lng so we only
+    // capture coordinate-bearing entries, not plain stat records.
+    final regex = RegExp(r'\{[^{}]*"trackerid"[^{}]*"lat"[^{}]*"lng"[^{}]*\}');
+    final matches = regex.allMatches(raw).toList();
+    if (matches.isNotEmpty) {
+      final results = <Map<String, dynamic>>[];
+      for (final m in matches) {
+        final text = m.group(0);
+        if (text == null) continue;
+        final decoded = _attemptJsonDecode(text);
+        if (decoded is Map) {
+          final map = _normalizeDynamicMap(decoded);
+          if (map != null && _looksLikeStatus(map)) {
+            results.add(map);
+          }
+        }
+      }
+      if (results.isNotEmpty) {
+        log(
+          'Parsing /ObjectsStatus - Extracted ${results.length} point objects from String payload via regex',
+          name: 'TraxrootObjectsDatasource._extractStatusList',
+          level: 800,
+        );
+        return results;
+      }
+    }
+  }
+
   // If the raw payload is a map, try merging points with stats FIRST,
   // so we don't lose iconId/ObjectId due to aggressive unwrapping.
   if (payload is Map<String, dynamic>) {
@@ -934,8 +1074,27 @@ dynamic _decodeTraxrootBody(String body) {
 
 List<Map<String, dynamic>> _mergePointsWithStats(Map<String, dynamic> payload) {
   final pointsRaw = payload['points'] ?? payload['Points'];
+
+  log(
+    '_mergePointsWithStats - pointsRaw type: ${pointsRaw.runtimeType}, isNull: ${pointsRaw == null}',
+    name: 'TraxrootObjectsDatasource._mergePointsWithStats',
+    level: 800,
+  );
+
   final points = _normalizeDynamicList(pointsRaw);
+
+  log(
+    '_mergePointsWithStats - Normalized points list length: ${points.length}',
+    name: 'TraxrootObjectsDatasource._mergePointsWithStats',
+    level: 800,
+  );
+
   if (points.isEmpty) {
+    log(
+      '_mergePointsWithStats - Points array is empty, returning empty list',
+      name: 'TraxrootObjectsDatasource._mergePointsWithStats',
+      level: 900,
+    );
     return const [];
   }
 
@@ -953,7 +1112,15 @@ List<Map<String, dynamic>> _mergePointsWithStats(Map<String, dynamic> payload) {
     }
   }
 
+  log(
+    '_mergePointsWithStats - Processing ${points.length} points, ${stats.length} stats',
+    name: 'TraxrootObjectsDatasource._mergePointsWithStats',
+    level: 800,
+  );
+
   final merged = <Map<String, dynamic>>[];
+  int filteredOut = 0;
+
   for (final point in points) {
     final tracker = _trackerKey(point);
     final combined = <String, dynamic>{};
@@ -971,8 +1138,25 @@ List<Map<String, dynamic>> _mergePointsWithStats(Map<String, dynamic> payload) {
 
     if (_looksLikeStatus(combined)) {
       merged.add(combined);
+    } else {
+      filteredOut++;
+      if (filteredOut <= 3) {
+        // Log first 3 filtered items to see why they don't pass
+        log(
+          '_mergePointsWithStats - Point filtered out (does not look like status). Keys: ${combined.keys.toList()}',
+          name: 'TraxrootObjectsDatasource._mergePointsWithStats',
+          level: 900,
+        );
+      }
     }
   }
+
+  log(
+    '_mergePointsWithStats - Merged ${merged.length} valid status objects, filtered out $filteredOut',
+    name: 'TraxrootObjectsDatasource._mergePointsWithStats',
+    level: 800,
+  );
+
   return merged;
 }
 

@@ -1,3 +1,4 @@
+/// Model representing a driver from Traxroot.
 class TraxrootDriverModel {
   final int? id;
   final String? name;

@@ -9,7 +9,9 @@ import '../../core/constants/variables.dart';
 import '../../core/services/session_service.dart';
 import '../models/response/get_job_history__response_model.dart';
 
+/// Datasource for fetching job history.
 class GetJobHistoryDatasource {
+  /// Fetches the history of completed jobs for the current user.
   Future<GetJobHistoryResponseModel> getJobHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString(Variables.prefApiKey);

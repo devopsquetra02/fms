@@ -4,6 +4,7 @@ import 'package:fms/core/services/subscription.dart';
 import '../controller/profile_controller.dart';
 import '../../../nav_bar.dart';
 
+/// A page displaying the user's profile, subscription status, and logout option.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 

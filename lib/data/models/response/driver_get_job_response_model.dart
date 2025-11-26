@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for driver get job requests.
 class DriverGetJobResponseModel {
   final bool? success;
   final String? message;

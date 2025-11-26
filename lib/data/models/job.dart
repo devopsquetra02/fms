@@ -1,3 +1,4 @@
+/// Model representing a job item.
 class JobItem {
   final String id;
   final String title;

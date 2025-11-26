@@ -1,6 +1,7 @@
 import 'package:fms/core/models/geo.dart';
 import 'package:fms/data/models/traxroot_sensor_model.dart';
 
+/// Model representing the real-time status of a Traxroot object.
 class TraxrootObjectStatusModel {
   final int? id;
   final String? name;
@@ -63,6 +64,7 @@ class TraxrootObjectStatusModel {
       iconUrl: icon,
       subtitle: subtitle.isEmpty ? null : subtitle,
       data: this,
+      rotation: course, // Use course (ang from API) for marker rotation
     );
   }
 

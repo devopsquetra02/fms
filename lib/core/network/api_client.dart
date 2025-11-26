@@ -108,7 +108,10 @@ class ApiClient {
     }
   }
 
-  /// GET request with company type validation
+  /// GET request with company type validation.
+  ///
+  /// [uri] - The URI to send the request to.
+  /// [headers] - Optional headers to include in the request.
   static Future<http.Response> get(
     Uri uri, {
     Map<String, String>? headers,
@@ -122,7 +125,12 @@ class ApiClient {
     return http.get(uri, headers: headers);
   }
 
-  /// POST request with company type validation
+  /// POST request with company type validation.
+  ///
+  /// [uri] - The URI to send the request to.
+  /// [headers] - Optional headers.
+  /// [body] - The body of the request.
+  /// [encoding] - The encoding to use.
   static Future<http.Response> post(
     Uri uri, {
     Map<String, String>? headers,
@@ -138,7 +146,12 @@ class ApiClient {
     return http.post(uri, headers: headers, body: body, encoding: encoding);
   }
 
-  /// PUT request with company type validation
+  /// PUT request with company type validation.
+  ///
+  /// [uri] - The URI to send the request to.
+  /// [headers] - Optional headers.
+  /// [body] - The body of the request.
+  /// [encoding] - The encoding to use.
   static Future<http.Response> put(
     Uri uri, {
     Map<String, String>? headers,
@@ -154,7 +167,12 @@ class ApiClient {
     return http.put(uri, headers: headers, body: body, encoding: encoding);
   }
 
-  /// DELETE request with company type validation
+  /// DELETE request with company type validation.
+  ///
+  /// [uri] - The URI to send the request to.
+  /// [headers] - Optional headers.
+  /// [body] - The body of the request.
+  /// [encoding] - The encoding to use.
   static Future<http.Response> delete(
     Uri uri, {
     Map<String, String>? headers,
@@ -170,7 +188,12 @@ class ApiClient {
     return http.delete(uri, headers: headers, body: body, encoding: encoding);
   }
 
-  /// PATCH request with company type validation
+  /// PATCH request with company type validation.
+  ///
+  /// [uri] - The URI to send the request to.
+  /// [headers] - Optional headers.
+  /// [body] - The body of the request.
+  /// [encoding] - The encoding to use.
   static Future<http.Response> patch(
     Uri uri, {
     Map<String, String>? headers,

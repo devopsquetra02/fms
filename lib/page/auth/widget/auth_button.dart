@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// Custom button widget for authentication pages.
+///
+/// A styled button that supports loading state and outlined or filled variants.
 class AuthButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;

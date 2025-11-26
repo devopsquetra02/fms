@@ -1,5 +1,6 @@
 import 'package:fms/core/constants/variables.dart';
 
+/// Model representing an icon from Traxroot.
 class TraxrootIconModel {
   final int? id;
   final String? url;

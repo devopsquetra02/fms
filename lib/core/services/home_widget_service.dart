@@ -4,10 +4,17 @@ import 'package:fms/core/models/geo.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:fms/core/widgets/widget_map_snapshot.dart';
 
+/// Service for updating home screen widgets (Android/iOS).
 class HomeWidgetService {
   static const String appGroupId = 'group.com.querta.fms';
   static const String androidWidgetName = 'JobWidgetProvider';
 
+  /// Updates the job statistics widget.
+  ///
+  /// [open] - Number of open jobs.
+  /// [ongoing] - Number of ongoing jobs.
+  /// [complete] - Number of completed jobs.
+  /// [recentJobs] - List of recent jobs to display.
   Future<void> updateJobStats({
     required int open,
     required int ongoing,
@@ -34,6 +41,10 @@ class HomeWidgetService {
     }
   }
 
+  /// Updates the map statistics widget.
+  ///
+  /// [activeVehicles] - Number of active vehicles.
+  /// [markers] - List of map markers to render in the snapshot.
   Future<void> updateMapStats({
     required int activeVehicles,
     required List<MapMarkerModel> markers,

@@ -8,7 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/variables.dart';
 
+/// Datasource for fetching user profile data.
 class ProfileRemoteDataSource {
+  /// Fetches the current user's profile information.
   Future<ProfileResponseModel> getProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString(Variables.prefApiKey);

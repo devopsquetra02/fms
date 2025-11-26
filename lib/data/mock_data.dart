@@ -2,6 +2,7 @@ import 'package:fms/core/models/geo.dart';
 import 'package:fms/data/models/vehicle.dart';
 import 'package:fms/data/models/job.dart';
 
+/// Class containing mock data for testing and development purposes.
 class MockData {
   static const GeoPoint manila = GeoPoint(14.5995, 120.9842);
 

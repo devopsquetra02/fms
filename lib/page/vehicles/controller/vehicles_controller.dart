@@ -8,6 +8,10 @@ import 'package:fms/data/models/traxroot_object_model.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 import 'package:fms/core/services/traxroot_credentials_manager.dart';
 
+/// Controller for managing vehicle data and tracking operations.
+///
+/// This controller handles fetching vehicle lists, filtering by group or query,
+/// managing vehicle icons, and performing real-time tracking updates.
 class VehiclesController extends GetxController {
   final _objectsDatasource = TraxrootObjectsDatasource(
     TraxrootAuthDatasource(),
@@ -69,6 +73,10 @@ class VehiclesController extends GetxController {
     loadData();
   }
 
+  /// Loads initial data including vehicles, icons, and groups.
+  ///
+  /// Fetches data from the [TraxrootObjectsDatasource] and populates the
+  /// observable variables. It also builds the group mapping and precaches icons.
   Future<void> loadData() async {
     isLoading.value = true;
 
@@ -191,6 +199,10 @@ class VehiclesController extends GetxController {
     }
   }
 
+  /// Fetches the current status of a specific vehicle.
+  ///
+  /// Tries to get the object with sensor data first, falling back to the latest point
+  /// or basic object details if that fails.
   Future<TraxrootObjectStatusModel?> fetchObjectStatus(
     TraxrootObjectModel vehicle,
   ) async {
@@ -240,36 +252,118 @@ class VehiclesController extends GetxController {
     );
   }
 
+  /// Refreshes the tracking status of a vehicle.
+  ///
+  /// Primary source: `/ObjectsStatus/{id}` via [getLatestPoint] for live
+  /// position + angle. Falls back to `getObjectWithSensors` and
+  /// `getObjectStatus` if needed.
   Future<TraxrootObjectStatusModel?> refreshTrackingStatus(
     TraxrootObjectStatusModel vehicle,
   ) async {
     final objectId = vehicle.id;
     if (objectId == null) {
+      log(
+        'Vehicle Tracking - Cannot refresh: vehicle has no objectId',
+        name: 'VehiclesController.refreshTrackingStatus',
+        level: 900,
+      );
       return null;
     }
 
+    log(
+      'Vehicle Tracking - Refresh started for objectId=$objectId',
+      name: 'VehiclesController.refreshTrackingStatus',
+      level: 800,
+    );
+
     try {
+      // 1) Try live latest point from /ObjectsStatus/{id}
+      final latestPoint = await _objectsDatasource.getLatestPoint(
+        objectId: objectId,
+      );
+      if (latestPoint != null &&
+          latestPoint.latitude != null &&
+          latestPoint.longitude != null) {
+        log(
+          'Vehicle Tracking - Live point from /ObjectsStatus/{id}: '
+          'lat=${latestPoint.latitude}, lng=${latestPoint.longitude}, ang=${latestPoint.course}',
+          name: 'VehiclesController.refreshTrackingStatus',
+          level: 800,
+        );
+
+        final posChanged =
+            vehicle.latitude != latestPoint.latitude ||
+            vehicle.longitude != latestPoint.longitude;
+        final angChanged = vehicle.course != latestPoint.course;
+
+        if (posChanged || angChanged) {
+          log(
+            'Vehicle Tracking - Position/Angle updated: '
+            'lat: ${vehicle.latitude} → ${latestPoint.latitude}, '
+            'lng: ${vehicle.longitude} → ${latestPoint.longitude}, '
+            'ang: ${vehicle.course} → ${latestPoint.course}',
+            name: 'VehiclesController.refreshTrackingStatus',
+            level: 800,
+          );
+        }
+
+        return vehicle.copyWith(
+          latitude: latestPoint.latitude,
+          longitude: latestPoint.longitude,
+          speed: latestPoint.speed,
+          course: latestPoint.course,
+          altitude: latestPoint.altitude,
+          status: latestPoint.status,
+          address: latestPoint.address,
+          updatedAt: latestPoint.updatedAt,
+          satellites: latestPoint.satellites,
+          accuracy: latestPoint.accuracy,
+        );
+      }
+
+      // 2) Fallback to sensor data if latest point isn't usable
+      log(
+        'Vehicle Tracking - Falling back to sensor/object status for objectId=$objectId',
+        name: 'VehiclesController.refreshTrackingStatus',
+        level: 800,
+      );
+
       final withSensors = await _objectsDatasource.getObjectWithSensors(
         objectId: objectId,
       );
       if (withSensors != null) {
+        log(
+          'Vehicle Tracking - Retrieved sensor data for objectId=$objectId',
+          name: 'VehiclesController.refreshTrackingStatus',
+          level: 800,
+        );
         return withSensors;
       }
 
       return await _objectsDatasource.getObjectStatus(objectId: objectId);
-    } catch (e) {
+    } catch (e, st) {
+      log(
+        'Vehicle Tracking - Error refreshing status for objectId=$objectId: $e',
+        name: 'VehiclesController.refreshTrackingStatus',
+        level: 1000,
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
 
+  /// Updates the search query for filtering vehicles.
   void updateQuery(String value) {
     query.value = value;
   }
 
+  /// Updates the selected group for filtering vehicles.
   void updateSelectedGroup(String? value) {
     selectedGroup.value = (value == null || value.isEmpty) ? null : value;
   }
 
+  /// Resets the controller state, clearing all data.
   void reset() {
     isLoading.value = false;
     objects.clear();

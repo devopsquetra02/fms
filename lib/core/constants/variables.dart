@@ -1,4 +1,8 @@
+/// Global variables and constants used throughout the application.
+///
+/// This class contains API endpoints, shared preferences keys, and other constant values.
 class Variables {
+  /// The base URL for the main API.
   static const String baseUrl = 'http://quetraverse.pro/efms/api/myapi';
   static const String imageBaseUrl = '$baseUrl/public/storage//';
 
@@ -26,6 +30,7 @@ class Variables {
   static const String rescheduleJobEndpoint = '$baseUrl/reschedule-job';
 
   // Traxroot endpoints
+  /// Base URL for Traxroot API.
   static const String traxrootBaseUrl = 'https://connect.traxroot.com/api';
   static const String traxrootTokenEndpoint = '$traxrootBaseUrl/Token';
   // static const String traxrootUsername = 'euodoo';
@@ -61,6 +66,7 @@ class Variables {
   //     '$traxrootInternalBaseUrl/getGeozoneIcons';
 
   // Shared Preferences keys
+  /// Key for storing API Key in Shared Preferences.
   static const String prefApiKey = 'apiKey';
   static const String prefUserID = 'UserID';
   static const String prefCompany = 'Company';

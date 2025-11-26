@@ -8,7 +8,9 @@ import '../../core/constants/variables.dart';
 import '../../core/network/http_error_handler.dart';
 import '../models/response/cancel_job_response_model.dart';
 
+/// Datasource for cancelling a job.
 class CancelJobDatasource {
+  /// Cancels a job with a reason.
   Future<CancelJobResponseModel> cancelJob({
     required int jobId,
     required String reason,

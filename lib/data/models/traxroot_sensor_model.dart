@@ -1,3 +1,4 @@
+/// Model representing a sensor attached to a Traxroot object.
 class TraxrootSensorModel {
   final String? id;
   final String? trackerId;

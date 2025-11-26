@@ -8,7 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/variables.dart';
 import '../models/response/finish_job_response_model.dart';
 
+/// Datasource for finishing a job.
 class FinishJobDatasource {
+  /// Marks a job as finished, uploading images and notes.
   Future<FinishJobResponseModel> finishJob({
     required int jobId,
     required List<String> imagesBase64,

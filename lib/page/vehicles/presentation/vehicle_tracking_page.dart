@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:get/get.dart';
@@ -8,6 +9,10 @@ import '../../../core/widgets/object_status_bottom_sheet.dart';
 import '../../../data/models/traxroot_object_status_model.dart';
 import '../controller/vehicles_controller.dart';
 
+/// A page that displays real-time tracking for a specific vehicle.
+///
+/// This page shows the vehicle on a map, updates its position periodically,
+/// and displays detailed status information in a card.
 class VehicleTrackingPage extends StatefulWidget {
   final TraxrootObjectStatusModel vehicle;
   final String? iconUrl;
@@ -51,6 +56,13 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
       return;
     }
 
+    log(
+      'VehicleTrackingPage - Refresh requested for objectId=${current!.id}, '
+      'lat=${current.latitude}, lng=${current.longitude}, ang=${current.course}',
+      name: 'VehicleTrackingPage._refreshLatestStatus',
+      level: 800,
+    );
+
     if (!mounted) return;
     setState(() {
       _loading = true;
@@ -58,10 +70,22 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
     });
 
     try {
-      final latest = await _vehiclesController.refreshTrackingStatus(current!);
+      final latest = await _vehiclesController.refreshTrackingStatus(current);
       if (!mounted) return;
+      final before = current;
+      final after = latest ?? current;
+
+      log(
+        'VehicleTrackingPage - Refresh result for objectId=${before.id}: '
+        'lat ${before.latitude} → ${after.latitude}, '
+        'lng ${before.longitude} → ${after.longitude}, '
+        'ang ${before.course} → ${after.course}',
+        name: 'VehicleTrackingPage._refreshLatestStatus',
+        level: 800,
+      );
+
       setState(() {
-        _vehicle = latest ?? current;
+        _vehicle = after;
         _loading = false;
       });
     } catch (e) {
@@ -202,6 +226,7 @@ class _VehicleTrackingPageState extends State<VehicleTrackingPage> {
   }
 }
 
+/// A widget that displays a vehicle's icon or a fallback avatar.
 class _VehicleAvatar extends StatelessWidget {
   const _VehicleAvatar({required this.iconUrl});
 

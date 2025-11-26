@@ -8,7 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/variables.dart';
 import '../models/response/driver_get_job_response_model.dart';
 
+/// Datasource for a driver to claim/start a job.
 class DriverGetJobDatasource {
+  /// Attempts to claim/start a job for the current driver.
   Future<DriverGetJobResponseModel> driverGetJob({required int jobId}) async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString(Variables.prefApiKey);

@@ -8,6 +8,7 @@ import 'package:fms/data/datasource/auth_remote_datasource.dart';
 import 'package:get/get.dart';
 import 'package:fms/page/auth/presentation/login_page.dart';
 
+/// Service for verifying if the user's company subscription type matches the local data.
 class CompanyTypeCheckService {
   CompanyTypeCheckService._();
 

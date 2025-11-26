@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../page/profile/presentation/profile_page.dart';
 
+/// A custom app bar widget with a logo and profile action.
 class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   const AppBarWidget({super.key, required this.title});

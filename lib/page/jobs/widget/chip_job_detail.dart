@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// A chip widget for displaying job details.
 class ChipJobDetail extends StatelessWidget {
   final String label;
   final Color? color;

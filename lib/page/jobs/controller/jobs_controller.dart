@@ -19,6 +19,7 @@ import 'package:fms/data/models/response/get_job_history__response_model.dart'
 import 'package:fms/data/models/response/reschedule_job_response_model.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 
+/// Controller for managing job lists (all, ongoing, history) and job actions.
 class JobsController extends GetxController
     with GetSingleTickerProviderStateMixin {
   final Rx<GetJobResponseModel?> allJobsResponse = Rx<GetJobResponseModel?>(
@@ -66,6 +67,7 @@ class JobsController extends GetxController
     fetchHistoryJobs();
   }
 
+  /// Fetches the list of all jobs.
   Future<void> fetchAllJobs() async {
     try {
       isLoadingAllJobs.value = true;
@@ -78,6 +80,7 @@ class JobsController extends GetxController
     }
   }
 
+  /// Fetches the history of completed jobs.
   Future<void> fetchHistoryJobs() async {
     try {
       isLoadingHistoryJobs.value = true;
@@ -91,6 +94,7 @@ class JobsController extends GetxController
     }
   }
 
+  /// Fetches the list of ongoing jobs.
   Future<void> fetchOngoingJobs() async {
     try {
       isLoadingOngoingJobs.value = true;
@@ -107,22 +111,27 @@ class JobsController extends GetxController
     }
   }
 
+  /// Refreshes all job lists.
   Future<void> refresh() async {
     await Future.wait([fetchAllJobs(), fetchOngoingJobs(), fetchHistoryJobs()]);
   }
 
+  /// Marks a job as rescheduled locally.
   void markJobRescheduled(int jobId, DateTime scheduledDate) {
     rescheduledJobs[jobId] = scheduledDate;
   }
 
+  /// Clears the rescheduled status of a job locally.
   void clearJobRescheduled(int jobId) {
     rescheduledJobs.remove(jobId);
   }
 
+  /// Starts a job (driver claims it).
   Future<DriverGetJobResponseModel> startJob(int jobId) {
     return _driverGetJobDatasource.driverGetJob(jobId: jobId);
   }
 
+  /// Finishes a job with optional images and notes.
   Future<FinishJobResponseModel> finishJob({
     required int jobId,
     required List<String> imagesBase64,
@@ -135,6 +144,7 @@ class JobsController extends GetxController
     );
   }
 
+  /// Reschedules a job to a new date.
   Future<RescheduleJobResponseModel> rescheduleJob({
     required int jobId,
     required DateTime newDate,
@@ -147,6 +157,7 @@ class JobsController extends GetxController
     );
   }
 
+  /// Cancels a job with a reason.
   Future<CancelJobResponseModel> cancelJob({
     required int jobId,
     required String reason,
@@ -154,6 +165,7 @@ class JobsController extends GetxController
     return _cancelJobDatasource.cancelJob(jobId: jobId, reason: reason);
   }
 
+  /// Gets the Traxroot status for a specific object/vehicle.
   Future<TraxrootObjectStatusModel> getObjectStatusForJob(int objectId) {
     return _traxrootObjectsDatasource.getObjectStatus(objectId: objectId);
   }

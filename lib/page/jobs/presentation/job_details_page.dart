@@ -19,6 +19,8 @@ import '../../profile/presentation/profile_page.dart';
 
 import 'job_navigation_page.dart';
 
+/// A page displaying detailed information about a specific job.
+/// Allows the driver to start, finish, reschedule, or cancel the job.
 class JobDetailsPage extends StatefulWidget {
   final dynamic job;
   final bool isOngoing;
@@ -720,6 +722,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     return null;
   }
 
+  /// Starts the job, changing its status to ongoing.
   Future<void> _startJob(BuildContext context) async {
     final jobId = widget.job.jobId as int?;
     if (jobId == null) {
@@ -786,6 +789,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     }
   }
 
+  /// Finishes the job, requiring photo evidence and optional notes.
   Future<void> _finishJob(BuildContext context) async {
     final jobId = widget.job.jobId as int?;
 
@@ -1154,6 +1158,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     return result;
   }
 
+  /// Shows a dialog to reschedule the job to a future date.
   Future<void> _showRescheduleDialog(BuildContext context) async {
     final jobId = widget.job.jobId as int?;
     if (jobId == null) {
@@ -1518,6 +1523,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     }
   }
 
+  /// Cancels the job with a required reason.
   Future<void> _cancelJob(BuildContext context) async {
     final jobId = widget.job.jobId as int?;
 

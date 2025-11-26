@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Defines the application's theme configuration.
 class AppTheme {
   AppTheme._();
 

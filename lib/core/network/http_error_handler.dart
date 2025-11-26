@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fms/page/auth/controller/auth_controller.dart';
 
+/// Helper class for handling HTTP errors globally.
 class HttpErrorHandler {
+  /// Handles the HTTP response based on the status code.
+  ///
+  /// [statusCode] - The HTTP status code.
+  /// [responseBody] - The body of the response.
   static void handleResponse(int statusCode, String responseBody) {
     if (statusCode == 401) {
       _handleUnauthorized();
@@ -34,6 +39,10 @@ class HttpErrorHandler {
     }
   }
 
+  /// Creates an exception from an HTTP error.
+  ///
+  /// [statusCode] - The HTTP status code.
+  /// [responseBody] - The body of the response.
   static Exception createException(int statusCode, String responseBody) {
     handleResponse(statusCode, responseBody);
     return Exception('HTTP $statusCode: $responseBody');

@@ -4,6 +4,8 @@ import 'package:fms/core/models/geo.dart';
 import 'package:fms/core/widgets/flutter_map_widget.dart';
 import 'package:fms/core/widgets/google_map_widget.dart';
 
+/// A map widget that adapts between Google Maps and Flutter Map (OpenStreetMap)
+/// based on configuration.
 class AdaptiveMap extends StatelessWidget {
   final GeoPoint center;
   final double zoom;

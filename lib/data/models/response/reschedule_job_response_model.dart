@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for reschedule job requests.
 class RescheduleJobResponseModel {
   final bool? success;
   final String? message;

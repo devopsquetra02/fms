@@ -9,7 +9,9 @@ import '../../core/constants/variables.dart';
 import '../../core/services/session_service.dart';
 import '../models/response/get_job_ongoing_response_model.dart';
 
+/// Datasource for fetching ongoing jobs.
 class GetJobOngoingDatasource {
+  /// Fetches the list of jobs currently in progress for the current user.
   Future<GetJobOngoingResponseModel> getOngoingJobs() async {
     final prefs = await SharedPreferences.getInstance();
     final apiKey = prefs.getString(Variables.prefApiKey);

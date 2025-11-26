@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fms/core/models/geo.dart';
 
+/// A widget that renders a static snapshot of a map state, used for home widgets.
 class WidgetMapSnapshot extends StatelessWidget {
   final List<MapMarkerModel> markers;
   final int activeCount;

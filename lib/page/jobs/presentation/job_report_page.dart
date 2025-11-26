@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:fms/data/models/response/get_job_history__response_model.dart';
 
+/// A page displaying a summary report of a completed job.
 class JobReportPage extends StatelessWidget {
   final Data job;
   const JobReportPage({super.key, required this.job});

@@ -8,7 +8,9 @@ import '../../core/constants/variables.dart';
 import '../../core/network/http_error_handler.dart';
 import '../models/response/reschedule_job_response_model.dart';
 
+/// Datasource for rescheduling a job.
 class RescheduleJobDatasource {
+  /// Reschedules a job to a new date.
   Future<RescheduleJobResponseModel> rescheduleJob({
     required int jobId,
     required DateTime newDate,

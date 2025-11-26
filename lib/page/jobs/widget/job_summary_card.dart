@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// A model representing a badge on the job summary card.
 class JobCardBadge {
   final String label;
   final IconData? icon;
@@ -16,6 +17,7 @@ class JobCardBadge {
   });
 }
 
+/// A card widget displaying a summary of a job.
 class JobSummaryCard extends StatelessWidget {
   final String title;
   final String? customerName;

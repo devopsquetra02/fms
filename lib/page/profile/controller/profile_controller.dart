@@ -10,6 +10,7 @@ import 'package:fms/page/home/controller/home_controller.dart';
 import 'package:fms/page/jobs/controller/jobs_controller.dart';
 import 'package:fms/page/vehicles/controller/vehicles_controller.dart';
 
+/// Controller for managing user profile data and authentication state.
 class ProfileController extends GetxController {
   final ProfileRemoteDataSource _profileDs = ProfileRemoteDataSource();
 
@@ -22,6 +23,7 @@ class ProfileController extends GetxController {
     fetchProfile();
   }
 
+  /// Fetches the user's profile information.
   Future<void> fetchProfile() async {
     try {
       final res = await _profileDs.getProfile();
@@ -33,6 +35,7 @@ class ProfileController extends GetxController {
     }
   }
 
+  /// Logs out the user, clearing all local data and navigating to login.
   Future<void> logout({
     required BuildContext context,
     required bool mounted,

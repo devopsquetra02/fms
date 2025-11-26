@@ -1,9 +1,11 @@
+/// Represents a geographical point with latitude and longitude.
 class GeoPoint {
   final double lat;
   final double lng;
   const GeoPoint(this.lat, this.lng);
 }
 
+/// Model representing a marker on the map.
 class MapMarkerModel {
   final String id;
   final GeoPoint position;
@@ -11,6 +13,8 @@ class MapMarkerModel {
   final String? iconUrl;
   final String? subtitle;
   final Object? data;
+  final double?
+  rotation; // Rotation angle in degrees (0-360), based on compass direction
   const MapMarkerModel({
     required this.id,
     required this.position,
@@ -18,11 +22,14 @@ class MapMarkerModel {
     this.iconUrl,
     this.subtitle,
     this.data,
+    this.rotation,
   });
 }
 
+/// Enum defining the type of map zone (polygon or polyline).
 enum MapZoneType { polygon, polyline }
 
+/// Style configuration for a map zone.
 class MapZoneStyle {
   final String? fillColorHex;
   final double? fillOpacity;
@@ -39,6 +46,7 @@ class MapZoneStyle {
   });
 }
 
+/// Model representing a zone on the map (e.g., geofence).
 class MapZoneModel {
   final String id;
   final MapZoneType type;

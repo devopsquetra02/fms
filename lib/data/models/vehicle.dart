@@ -1,5 +1,6 @@
 import 'package:fms/core/models/geo.dart';
 
+/// Model representing a vehicle in the fleet.
 class Vehicle {
   final String id;
   final String name;

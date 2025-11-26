@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:fms/core/models/geo.dart';
 
+/// A map widget implementation using `flutter_map` (OpenStreetMap).
 class FlutterMapWidget extends StatelessWidget {
   final GeoPoint center;
   final double zoom;
@@ -93,10 +94,17 @@ class FlutterMapWidget extends StatelessWidget {
                     point: ll.LatLng(m.position.lat, m.position.lng),
                     width: 28,
                     height: 28,
+                    rotate: true, // Enable rotation for the marker
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: onMarkerTap != null ? () => onMarkerTap!(m) : null,
-                      child: _buildMarkerIcon(m),
+                      child: Transform.rotate(
+                        angle:
+                            (m.rotation ?? 0.0) *
+                            (3.14159265359 /
+                                180.0), // Convert degrees to radians
+                        child: _buildMarkerIcon(m),
+                      ),
                     ),
                   ),
                 )

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for fetching ongoing jobs.
 class GetJobOngoingResponseModel {
   final bool? success;
   final List<Data>? data;
@@ -25,6 +26,7 @@ class GetJobOngoingResponseModel {
   };
 }
 
+/// Data object representing an ongoing job.
 class Data {
   final int? jobId;
   final String? jobName;

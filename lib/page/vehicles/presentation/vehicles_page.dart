@@ -5,6 +5,10 @@ import 'package:fms/core/widgets/object_status_bottom_sheet.dart';
 import 'package:fms/page/vehicles/controller/vehicles_controller.dart';
 import 'package:fms/page/vehicles/presentation/vehicle_tracking_page.dart';
 
+/// A page that displays a list of vehicles with filtering and search capabilities.
+///
+/// Allows users to view all vehicles, filter by group, search by name,
+/// and navigate to vehicle tracking or details.
 class VehiclesPage extends StatefulWidget {
   const VehiclesPage({super.key});
 
@@ -169,7 +173,7 @@ class _VehiclesPageState extends State<VehiclesPage> {
                                   )
                                 : const Icon(Icons.near_me_outlined),
                           ),
-                          
+
                           IconButton(
                             tooltip: 'Detail',
                             onPressed:
@@ -298,6 +302,7 @@ class _VehiclesPageState extends State<VehiclesPage> {
   }
 }
 
+/// A widget that displays a vehicle's icon in the list.
 class _VehicleIcon extends StatelessWidget {
   const _VehicleIcon({required this.url});
 

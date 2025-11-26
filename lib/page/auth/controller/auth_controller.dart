@@ -23,6 +23,9 @@ import 'package:fms/page/jobs/controller/jobs_controller.dart';
 import 'package:fms/page/vehicles/controller/vehicles_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Controller for handling authentication logic.
+///
+/// Manages user session, login, logout, and preloading of essential data.
 class AuthController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isAuthenticated = false.obs;
@@ -35,6 +38,10 @@ class AuthController extends GetxController {
     checkSession();
   }
 
+  /// Checks if the user is currently authenticated.
+  ///
+  /// Verifies if an API key exists in secure storage. If found, it updates the
+  /// authentication state and loads the user's subscription plan.
   Future<void> checkSession() async {
     isLoading.value = true;
     try {
@@ -61,12 +68,19 @@ class AuthController extends GetxController {
     }
   }
 
+  /// Logs in the user with a token.
+  ///
+  /// Stores the provided token and updates the authentication state.
   Future<void> login(String token) async {
     await _storage.write(Variables.prefApiKey, token);
     apiKey.value = token;
     isAuthenticated.value = true;
   }
 
+  /// Logs in the user with email and password.
+  ///
+  /// Authenticates with the remote server, stores user credentials and preferences,
+  /// preloads Traxroot data, and navigates to the main application.
   Future<void> loginWithCredentials({
     required String email,
     required String password,
@@ -164,6 +178,10 @@ class AuthController extends GetxController {
     }
   }
 
+  /// Logs out the user and clears all data.
+  ///
+  /// Removes stored credentials, clears cached data in controllers, and
+  /// redirects the user to the login page.
   Future<void> logout() async {
     // Clear all data
     await _storage.deleteAll();

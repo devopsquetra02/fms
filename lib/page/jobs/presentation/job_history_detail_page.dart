@@ -5,6 +5,7 @@ import 'package:fms/data/models/response/get_job_history__response_model.dart';
 import 'job_navigation_page.dart';
 import 'job_report_page.dart';
 
+/// A page displaying details of a completed job from history.
 class JobHistoryDetailPage extends StatelessWidget {
   final Data job;
   const JobHistoryDetailPage({super.key, required this.job});
@@ -558,7 +559,7 @@ class JobHistoryDetailPage extends StatelessWidget {
           ),
         ),
       ),
-    ); 
+    );
   }
 
   String _getJobTypeString(int? type) {

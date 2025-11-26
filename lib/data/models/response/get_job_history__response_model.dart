@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// Response model for fetching job history.
 class GetJobHistoryResponseModel {
   final bool? success;
   final List<Data>? data;
@@ -25,6 +26,7 @@ class GetJobHistoryResponseModel {
   };
 }
 
+/// Data object representing a historical job entry.
 class Data {
   final int? jobId;
   final String? jobName;

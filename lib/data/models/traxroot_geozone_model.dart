@@ -1,5 +1,6 @@
 import 'package:fms/core/models/geo.dart';
 
+/// Model representing a geozone (geofence) from Traxroot.
 class TraxrootGeozoneModel {
   final int? id;
   final String? name;
@@ -101,6 +102,7 @@ class TraxrootGeozoneModel {
   }
 }
 
+/// Style configuration for a Traxroot geozone.
 class TraxrootGeozoneStyle {
   final String? type;
   final String? fillColor;
