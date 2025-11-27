@@ -7,6 +7,7 @@ import 'package:fms/data/models/traxroot_icon_model.dart';
 import 'package:fms/data/models/traxroot_object_model.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
 import 'package:fms/core/services/traxroot_credentials_manager.dart';
+import 'package:fms/page/home/controller/home_controller.dart';
 
 /// Controller for managing vehicle data and tracking operations.
 ///
@@ -277,6 +278,29 @@ class VehiclesController extends GetxController {
     );
 
     try {
+      // 0) Try to reuse the latest status from HomeController to keep
+      // VehicleTrackingPage perfectly in sync with the homepage map.
+      try {
+        final home = Get.find<HomeController>();
+        TraxrootObjectStatusModel? homeStatus;
+        for (final status in home.objects) {
+          if (status.id == objectId) {
+            homeStatus = status;
+            break;
+          }
+        }
+        if (homeStatus != null) {
+          log(
+            'Vehicle Tracking - Using HomeController status for objectId=$objectId',
+            name: 'VehiclesController.refreshTrackingStatus',
+            level: 800,
+          );
+          return homeStatus;
+        }
+      } catch (_) {
+        // HomeController not available; fall back to direct API calls below.
+      }
+
       // 1) Try live latest point from /ObjectsStatus/{id}
       final latestPoint = await _objectsDatasource.getLatestPoint(
         objectId: objectId,

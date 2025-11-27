@@ -623,8 +623,8 @@ class HomeController extends GetxController {
       }
     }
 
-    // Expire notifications after 3 seconds from last detection
-    final expiry = now.subtract(const Duration(seconds: 3));
+    // Expire notifications after 4 seconds from last detection
+    final expiry = now.subtract(const Duration(seconds: 4));
     movingObjects.removeWhere((status) {
       final objectId = status.id;
       if (objectId == null) {
