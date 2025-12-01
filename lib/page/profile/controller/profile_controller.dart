@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:fms/core/services/traxroot_credentials_manager.dart';
 import 'package:fms/core/widgets/snackbar_utils.dart';
 import 'package:fms/data/datasource/auth_remote_datasource.dart';
 import 'package:fms/data/datasource/profile_remote_datasource.dart';
@@ -46,6 +47,9 @@ class ProfileController extends GetxController {
 
       // Clear Traxroot token cache
       await TraxrootAuthDatasource().clearCachedToken();
+
+      // Invalidate Traxroot credentials cache so next user doesn't use previous user's credentials
+      TraxrootCredentialsManager.invalidateCache();
 
       // Clear controller caches
       try {

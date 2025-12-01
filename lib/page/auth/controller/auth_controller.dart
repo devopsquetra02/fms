@@ -191,6 +191,9 @@ class AuthController extends GetxController {
     // Clear Traxroot token cache
     await TraxrootAuthDatasource().clearCachedToken();
 
+    // Invalidate Traxroot credentials cache so next user doesn't use previous user's credentials
+    TraxrootCredentialsManager.invalidateCache();
+
     // Clear controller caches
     try {
       if (Get.isRegistered<HomeController>()) {
