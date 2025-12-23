@@ -152,6 +152,16 @@
                         <input type="text" class="form-control" id="fullname" name="fullname"
                             placeholder="Enter Full Name">
                     </div>
+
+                    <!-- New feature where the riders will have two roles. One is Rider only and one is a viewing user. -Kian -->
+                    <div class="form-group">
+                        <label for="email">Select User Role</label>
+                         <select name="user_role" class="form-control select2For_modal" id="user_role" required>
+                            <option value="">---- Select Role ----</option>
+                            <option value="monitor">Monitor</option>
+                            <option value="field">Field</option>
+                         </select>
+                    </div>
                     
                     <div class="form-group">
                         <label for="email">Email</label>
@@ -159,7 +169,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="email">Password</label>
+                        <label for="pass">Password</label>
                         <input type="password" class="form-control" id="pass" name="pass">
                     </div>
 
@@ -213,7 +223,7 @@
                     <input type="hidden" id="user_id" name="user_id">
                     <input type="hidden" id="current_job" name="current_job">
                     <p id="detail_reason_delete" class="mb-0"></p>
-                    <span>Do You Sure To delete Rider : <strong id="email_users"></strong></span>
+                    <span>Do you want to delete the rider : <strong id="email_users"></strong></span>
                 </form>
             </div>
 
@@ -253,6 +263,7 @@ $(document).ready(function() {
 
         textHeaderModal.text('Add Rider');
         modal.find('#user_id').val('');
+        modal.find('#user_role').val(''); // gets user_role input
         modal.find('#fullname').val('');
         modal.find('#email').val('');
         modal.find('#pass').val('');
