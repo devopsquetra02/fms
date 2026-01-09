@@ -23,6 +23,7 @@ class GoogleMapWidget extends StatefulWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
+  // ignore: unused_field
   GoogleMapController? _controller;
 
   @override

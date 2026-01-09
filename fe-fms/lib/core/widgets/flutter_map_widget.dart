@@ -115,6 +115,7 @@ class FlutterMapWidget extends StatelessWidget {
     );
   }
 
+  // ignore: unused_element
   String _buildTooltipMessage(MapMarkerModel marker) {
     final parts = <String>[];
     if (marker.title != null && marker.title!.isNotEmpty) {

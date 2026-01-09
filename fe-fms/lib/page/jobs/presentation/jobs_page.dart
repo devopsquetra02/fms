@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:fms/page/jobs/controller/jobs_controller.dart';
-import 'package:fms/data/models/response/get_job_response_model.dart';
 import 'package:fms/page/jobs/presentation/job_details_page.dart';
 import 'package:fms/data/models/response/get_job_history__response_model.dart'
     as history;

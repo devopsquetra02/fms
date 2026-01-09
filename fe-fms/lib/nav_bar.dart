@@ -1,33 +1,90 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fms/page/home/presentation/home_page.dart';
 import 'package:fms/page/vehicles/presentation/vehicles_page.dart';
 import 'package:fms/page/jobs/presentation/jobs_gate_tab.dart';
 import 'package:fms/core/navigation/navigation_controller.dart';
 import 'core/widgets/app_bar_widget.dart';
+import 'package:fms/core/services/subscription.dart';
+import 'package:fms/core/constants/variables.dart';
 
-class NavBar extends StatelessWidget {
+class NavBar extends StatefulWidget {
   const NavBar({super.key});
 
   @override
+  State<NavBar> createState() => _NavBarState();
+}
+
+class _NavBarState extends State<NavBar> {
+  late final NavigationController navController;
+
+  @override
+  void initState() {
+    super.initState();
+    navController = Get.put(NavigationController());
+    _configureTabs();
+  }
+
+  Future<void> _configureTabs() async {
+    final isPro = subscriptionService.currentPlan == Plan.pro;
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString(Variables.prefUserRole);
+    navController.configureTabs(isPro: isPro, role: role);
+  }
+
+  Widget _widgetForTitle(String title) {
+    switch (title) {
+      case 'Dashboard':
+        return const HomeTab();
+      case 'Vehicles':
+        return const VehiclesPage();
+      case 'Jobs':
+        return const JobsGateTab();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  NavigationDestination _destinationForTitle(String title) {
+    switch (title) {
+      case 'Dashboard':
+        return const NavigationDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home),
+          label: 'Home',
+        );
+      case 'Vehicles':
+        return const NavigationDestination(
+          icon: Icon(Icons.directions_car_outlined),
+          selectedIcon: Icon(Icons.directions_car),
+          label: 'Vehicles',
+        );
+      case 'Jobs':
+        return const NavigationDestination(
+          icon: Icon(Icons.list_alt_outlined),
+          selectedIcon: Icon(Icons.list_alt),
+          label: 'Jobs',
+        );
+      default:
+        return NavigationDestination(
+          icon: const Icon(Icons.help_outline),
+          selectedIcon: const Icon(Icons.help),
+          label: title,
+        );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final navController = Get.put(NavigationController());
-
-    // Ensure controller titles/tabs stay in sync
-    navController.configureTabs(isPro: true);
-
-    final tabs = const [HomeTab(), VehiclesPage(), JobsGateTab()];
-
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
 
-        // If not on home tab, navigate to home first
         if (navController.selectedIndex.value != 0) {
           navController.changeTab(0);
         } else {
-          // Already on home, exit app
           final shouldExit = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
@@ -52,46 +109,24 @@ class NavBar extends StatelessWidget {
         }
       },
       child: Obx(
-        () => Scaffold(
-          appBar: AppBarWidget(title: navController.currentTitle),
-          body: IndexedStack(
-            index: navController.selectedIndex.value,
-            children: tabs,
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: navController.selectedIndex.value,
-            onDestinationSelected: navController.changeTab,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.directions_car_outlined),
-                selectedIcon: Icon(Icons.directions_car),
-                label: 'Vehicles',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.list_alt_outlined),
-                selectedIcon: Icon(Icons.list_alt),
-                label: 'Jobs',
-              ),
-            ],
-            // : const [
-            //   NavigationDestination(
-            //     icon: Icon(Icons.home_outlined),
-            //     selectedIcon: Icon(Icons.home),
-            //     label: 'Home',
-            //   ),
-            //   NavigationDestination(
-            //     icon: Icon(Icons.list_alt_outlined),
-            //     selectedIcon: Icon(Icons.list_alt),
-            //     label: 'Jobs',
-            //   ),
-            // ],
-          ),
-        ),
+        () {
+          final titles = navController.titles;
+          final tabs = titles.map((t) => _widgetForTitle(t)).toList();
+          final destinations = titles.map((t) => _destinationForTitle(t)).toList();
+
+          return Scaffold(
+            appBar: AppBarWidget(title: navController.currentTitle),
+            body: IndexedStack(
+              index: navController.selectedIndex.value,
+              children: tabs,
+            ),
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: navController.selectedIndex.value,
+              onDestinationSelected: navController.changeTab,
+              destinations: destinations,
+            ),
+          );
+        },
       ),
     );
   }

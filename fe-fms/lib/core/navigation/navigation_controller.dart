@@ -5,13 +5,26 @@ class NavigationController extends GetxController {
   final RxInt selectedIndex = 0.obs;
   final RxList<String> _titles = <String>['Dashboard', 'Vehicles', 'Jobs'].obs;
 
-  /// Configures the available tabs based on the user's subscription status.
+  /// Expose titles so UI can build tabs/destinations dynamically.
+  RxList<String> get titles => _titles;
+
+  /// Configures the available tabs based on the user's subscription status and role.
   ///
   /// [isPro] - Whether the user has a Pro subscription.
-  void configureTabs({required bool isPro}) {
-    final newTitles = isPro
-        ? const ['Dashboard', 'Vehicles', 'Jobs']
-        : const ['Dashboard', 'Jobs'];
+  /// [role] - Optional user role: 'monitor' or 'field'.
+  void configureTabs({required bool isPro, String? role}) {
+    final List<String> newTitles;
+    if (isPro) {
+      if (role == 'field') {
+        newTitles = const ['Dashboard', 'Jobs'];
+      } else if (role == 'monitor') {
+        newTitles = const ['Dashboard', 'Vehicles'];
+      } else {
+        newTitles = const ['Dashboard', 'Vehicles', 'Jobs'];
+      }
+    } else {
+      newTitles = const ['Dashboard', 'Vehicles'];
+    }
 
     if (!_titlesMatch(newTitles)) {
       _titles.assignAll(newTitles);
@@ -27,7 +40,10 @@ class NavigationController extends GetxController {
     selectedIndex.value = index;
   }
 
-  String get currentTitle => _titles[selectedIndex.value];
+  String get currentTitle =>
+      (_titles.isNotEmpty && selectedIndex.value < _titles.length)
+          ? _titles[selectedIndex.value]
+          : '';
 
   bool _titlesMatch(List<String> other) {
     if (_titles.length != other.length) return false;

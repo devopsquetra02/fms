@@ -3,8 +3,16 @@
 /// This class contains API endpoints, shared preferences keys, and other constant values.
 class Variables {
   /// The base URL for the main API.
-  static const String baseUrl = 'http://quetraverse.pro/efms/api/myapi';
-  static const String imageBaseUrl = '$baseUrl/public/storage//';
+  // static const String baseUrl = 'http://quetraverse.pro/efms/api/myapi';
+
+
+  // Use --dart-define=BASE_URL=<url> to override at build/run time (default: production)
+  static const String baseUrl = String.fromEnvironment(
+    'BASE_URL',
+    // defaultValue: 'http://quetraverse.pro/efms/api/myapi',
+    defaultValue: 'http://10.0.2.2:8000/myapi',
+  );
+  static const String imageBaseUrl = '$baseUrl/public/storage/';
 
   // API endpoints helper methods
   static String getProfileEndpoint(String userId) =>
@@ -78,4 +86,5 @@ class Variables {
 
   static const String prefTraxrootToken = 'TraxrootAccessToken';
   static const String prefTraxrootTokenExpiry = 'TraxrootAccessTokenExpiry';
+  static const String prefUserRole = 'UserRole';
 }

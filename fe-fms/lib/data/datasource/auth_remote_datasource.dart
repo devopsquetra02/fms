@@ -38,6 +38,29 @@ class AuthRemoteDataSource {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final model = AuthResponseModel.fromJson(response.body);
+
+      // Try to extract role from response Data and persist it for NavBar configuration
+      try {
+        final decoded = json.decode(response.body) as Map<String, dynamic>;
+        final data = decoded['Data'] as Map<String, dynamic>?;
+        String? role;
+        if (data != null) {
+          if (data['role'] != null) {role = data['role'].toString();}
+          else if (data['Role'] != null) {role = data['Role'].toString();}
+          else if (data['UserRole'] != null) {role = data['UserRole'].toString();}
+          else if (data['userRole'] != null) {role = data['userRole'].toString();}
+          else if (data['user_role'] != null) {role = data['user_role'].toString();}
+          else if (data['role_name'] != null) {role = data['role_name'].toString();}
+          else if (data['RoleName'] != null) {role = data['RoleName'].toString();}
+        }
+        if (role != null && role.trim().isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          final normalized = role.trim().toLowerCase();
+          await prefs.setString(Variables.prefUserRole, normalized);
+          log('Persisted user role: $normalized', name: 'AuthRemoteDataSource', level: 800);
+        }
+      } catch (_) {}
+
       if (model.success == true && model.data?.apiKey != null) {
         return model;
       } else {

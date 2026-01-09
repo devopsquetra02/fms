@@ -254,7 +254,8 @@ class _ObjectStatusBottomSheetState extends State<ObjectStatusBottomSheet> {
 
   /// Build sensor rows
   List<Widget> _buildSensorRows(List<TraxrootSensorModel> sensors) {
-    return sensors.map((sensor) {
+    final meaningful = sensors.where(_hasMeaningfulData).toList();
+    return meaningful.map((sensor) {
       final name = sensor.name ?? 'Unknown';
       final value = _formatSensorValue(sensor);
       return _DetailRow(label: name, value: value);

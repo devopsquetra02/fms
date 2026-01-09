@@ -35,7 +35,6 @@ class HomeController extends GetxController {
       <TraxrootObjectStatusModel>[].obs;
   final RxList<TraxrootObjectStatusModel> movingObjects =
       <TraxrootObjectStatusModel>[].obs;
-  final Map<int, TraxrootObjectStatusModel> _lastStatusByObjectId = {};
   final Map<int, DateTime> _lastMovementTimeByObjectId = {};
   final Map<int, String> _lastMovementEventIdByObjectId = {};
   final Map<int, String> lastMovementTextByObjectId = {};

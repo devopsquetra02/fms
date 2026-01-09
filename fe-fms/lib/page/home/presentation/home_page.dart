@@ -7,6 +7,8 @@ import 'package:fms/page/home/controller/home_controller.dart';
 import 'package:fms/page/vehicles/presentation/vehicle_tracking_page.dart';
 import 'package:fms/core/services/subscription.dart';
 import 'package:fms/data/models/traxroot_object_status_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fms/core/constants/variables.dart';
 
 import '../../../core/models/geo.dart';
 
@@ -54,8 +56,7 @@ class FullMapPage extends StatelessWidget {
     }
 
     final iconUrl =
-        marker.iconUrl ??
-        (status.id != null ? controller.iconUrlByObjectId[status.id!] : null);
+        marker.iconUrl ?? (status.id != null ? controller.iconUrlByObjectId[status.id!] : null);
 
     Get.to(() => VehicleTrackingPage(vehicle: status, iconUrl: iconUrl));
   }
@@ -78,9 +79,7 @@ class _MovingVehicleBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = status.name ?? status.trackerId ?? 'Vehicle';
     final theme = Theme.of(context);
-    final bgColor = isMove
-        ? theme.colorScheme.primaryContainer
-        : theme.colorScheme.secondaryContainer;
+    final bgColor = isMove ? theme.colorScheme.primaryContainer : theme.colorScheme.secondaryContainer;
 
     return Card(
       color: bgColor,
@@ -98,6 +97,7 @@ class _MovingVehicleBanner extends StatelessWidget {
 class _HomeTabState extends State<HomeTab> {
   bool _isMarkerLoading = false;
   Timer? _autoTimer;
+  String? _userRole;
 
   @override
   void initState() {
@@ -108,6 +108,15 @@ class _HomeTabState extends State<HomeTab> {
       if (!controller.isLoading.value) {
         controller.refreshStatuses();
       }
+    });
+
+    // Load persisted role (if any)
+    SharedPreferences.getInstance().then((prefs) {
+      final role = prefs.getString(Variables.prefUserRole)?.toLowerCase().trim();
+      if (mounted) {
+        setState(() => _userRole = role);
+      }
+      debugPrint('HomeTab: loaded userRole=$_userRole');
     });
   }
 
@@ -149,14 +158,11 @@ class _HomeTabState extends State<HomeTab> {
 
     final enrichedStatus =
         statusWithSensors.name != null && statusWithSensors.name!.isNotEmpty
-        ? statusWithSensors
-        : statusWithSensors.copyWith(name: marker.title);
+            ? statusWithSensors
+            : statusWithSensors.copyWith(name: marker.title);
 
     final resolvedIconUrl =
-        marker.iconUrl ??
-        (enrichedStatus.id != null
-            ? controller.iconUrlByObjectId[enrichedStatus.id!]
-            : null);
+        marker.iconUrl ?? (enrichedStatus.id != null ? controller.iconUrlByObjectId[enrichedStatus.id!] : null);
 
     await showModalBottomSheet(
       context: context,
@@ -169,12 +175,7 @@ class _HomeTabState extends State<HomeTab> {
         onTrack: enrichedStatus.id != null
             ? () {
                 Get.back();
-                Get.to(
-                  () => VehicleTrackingPage(
-                    vehicle: enrichedStatus,
-                    iconUrl: resolvedIconUrl,
-                  ),
-                );
+                Get.to(() => VehicleTrackingPage(vehicle: enrichedStatus, iconUrl: resolvedIconUrl));
               }
             : null,
       ),
@@ -189,6 +190,10 @@ class _HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
     final isPro = subscriptionService.currentPlan == Plan.pro;
+    final showMap = isPro && (_userRole != 'field'); // hide map for 'field'
+    final showOverview = isPro && (_userRole != 'monitor'); // hide overview for basic users & Pro monitors
+
+    debugPrint('HomeTab build: isPro=$isPro userRole=$_userRole showMap=$showMap showOverview=$showOverview');
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -201,141 +206,139 @@ class _HomeTabState extends State<HomeTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(
-                    tooltip: 'Refresh',
-                    onPressed: controller.isLoading.value
-                        ? null
-                        : controller.loadData,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                  IconButton(
-                    tooltip: 'Full map',
-                    onPressed: () {
-                      Get.to(() => const FullMapPage());
-                    },
-                    icon: const Icon(Icons.fullscreen),
-                  ),
+                  if (showMap)
+                    IconButton(
+                      tooltip: 'Refresh',
+                      onPressed: controller.isLoading.value ? null : controller.loadData,
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  if (showMap)
+                    IconButton(
+                      tooltip: 'Full map',
+                      onPressed: () {
+                        Get.to(() => const FullMapPage());
+                      },
+                      icon: const Icon(Icons.fullscreen),
+                    ),
                 ],
               ),
-              // Only show map for Pro users
-              // if (isPro)
+
+              // Map area or Overview when map hidden for 'field'
               Expanded(
                 child: controller.isLoading.value
                     ? const Center(child: CircularProgressIndicator())
-                    : Stack(
-                        children: [
-                          AdaptiveMap(
-                            center: controller.mapCenter,
-                            zoom: 12.5,
-                            markers: controller.markers,
-                            zones: controller.zones,
-                            onMarkerTap: (marker) =>
-                                _handleMarkerTap(context, controller, marker),
-                          ),
-                          Obx(() {
-                            final movingList = controller.movingObjects;
-                            if (movingList.isEmpty) {
-                              return const SizedBox.shrink();
-                            }
+                    : showMap
+                        ? Stack(
+                            children: [
+                              AdaptiveMap(
+                                center: controller.mapCenter,
+                                zoom: 12.5,
+                                markers: controller.markers,
+                                zones: controller.zones,
+                                onMarkerTap: (marker) => _handleMarkerTap(context, controller, marker),
+                              ),
+                              Obx(() {
+                                final movingList = controller.movingObjects;
+                                if (movingList.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
 
-                            return Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 16,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                return Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 16,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        for (final moving in movingList)
+                                          _MovingVehicleBanner(
+                                            status: moving,
+                                            iconUrl: moving.id != null ? controller.iconUrlByObjectId[moving.id!] : null,
+                                            message: moving.id != null
+                                                ? (controller.lastMovementTextByObjectId[moving.id!] ?? 'is moving')
+                                                : 'is moving',
+                                            isMove: moving.id != null
+                                                ? ((controller.lastMovementTypeByObjectId[moving.id!] ?? '') == 'MOVE' ||
+                                                    (controller.lastMovementTextByObjectId[moving.id!]?.toLowerCase().contains('moving') ?? false))
+                                                : false,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+                              if (_isMarkerLoading)
+                                Positioned.fill(
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                    ),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
                                 ),
+                            ],
+                          )
+                        : (showOverview
+                            ? SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
                                 child: Column(
-                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    for (final moving in movingList)
-                                      _MovingVehicleBanner(
-                                        status: moving,
-                                        iconUrl: moving.id != null
-                                            ? controller
-                                                  .iconUrlByObjectId[moving.id!]
-                                            : null,
-                                        message: moving.id != null
-                                            ? (controller
-                                                      .lastMovementTextByObjectId[moving
-                                                      .id!] ??
-                                                  'is moving')
-                                            : 'is moving',
-                                        isMove: moving.id != null
-                                            ? ((controller.lastMovementTypeByObjectId[moving
-                                                              .id!] ??
-                                                          '') ==
-                                                      'MOVE' ||
-                                                  (controller
-                                                          .lastMovementTextByObjectId[moving
-                                                              .id!]
-                                                          ?.toLowerCase()
-                                                          .contains('moving') ??
-                                                      false))
-                                            : false,
-                                      ),
+                                    const SizedBox(height: 8),
+                                    Text('Overview', style: Theme.of(context).textTheme.titleMedium),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _StatCard(
+                                            title: 'Open Jobs',
+                                            value: controller.openJobsCount.toString(),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _StatCard(
+                                            title: 'Ongoing',
+                                            value: controller.ongoingJobsCount.toString(),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _StatCard(
+                                            title: 'Complete',
+                                            value: controller.completedJobsCount.toString(),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ),
-                            );
-                          }),
-                          if (_isMarkerLoading)
-                            Positioned.fill(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.15),
+                              )
+                            : Center(
+                                child: Text(
+                                  'Overview not available',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                                 ),
-                                child: const Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+                              ) ),
               ),
-              // For basic users, show upgrade message
-              // if (!isPro)
-              //   Expanded(
-              //     child: Center(
-              //       child: Column(
-              //         mainAxisAlignment: MainAxisAlignment.center,
-              //         children: [
-              //           Icon(
-              //             Icons.map_outlined,
-              //             size: 80,
-              //             color: Colors.grey.shade400,
-              //           ),
-              //           const SizedBox(height: 16),
-              //           Text(
-              //             'Map View',
-              //             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              //               color: Colors.grey.shade700,
-              //             ),
-              //           ),
-              //           const SizedBox(height: 8),
-              //           Text(
-              //             'Upgrade to Pro to access map view\nand vehicle tracking',
-              //             textAlign: TextAlign.center,
-              //             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              //               color: Colors.grey.shade600,
-              //             ),
-              //           ),
-              //         ],
-              //       ),
-              //     ),
-              //   ),
+
               if (controller.error.value.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
                   controller.error.value,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                 ),
               ],
               const SizedBox(height: 16),
-              if (isPro) ...[
+
+              // Show the detailed Overview below the map only when allowed
+              if (showOverview && showMap) ...[
                 Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -372,14 +375,13 @@ class _HomeTabState extends State<HomeTab> {
                   ],
                 ),
               ],
+
               if (!isPro) ...[
                 const SizedBox(height: 8),
                 Text(
                   'Upgrade to Pro to access Job',
                   textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
                 ),
               ],
             ],
@@ -408,9 +410,7 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               value,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),

@@ -49,6 +49,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     super.dispose();
   }
 
+  // ignore: unused_element
   void _shareJobDetails() {
     final job = widget.job;
     final buffer = StringBuffer()

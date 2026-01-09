@@ -208,11 +208,11 @@ class TraxrootObjectsDatasource {
           final snippet = decoded.length > 200
               ? decoded.substring(0, 200)
               : decoded;
-          // log(
-          //   'Parsing /ObjectsStatus - Decoded body is still String after reparsing. Snippet: $snippet',
-          //   name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
-          //   level: 1000,
-          // );
+          log(
+            'Parsing /ObjectsStatus - Decoded body is still String after reparsing. Snippet: $snippet',
+            name: 'TraxrootObjectsDatasource.getAllObjectsStatus',
+            level: 1000,
+          );
         }
       }
 
