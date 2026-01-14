@@ -190,7 +190,7 @@ class _HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
     final isPro = subscriptionService.currentPlan == Plan.pro;
-    final showMap = isPro && (_userRole != 'field'); // hide map for 'field'
+    final showMap = (_userRole != 'field'); // hide map for 'field'
     final showOverview = isPro && (_userRole != 'monitor'); // hide overview for basic users & Pro monitors
 
     debugPrint('HomeTab build: isPro=$isPro userRole=$_userRole showMap=$showMap showOverview=$showOverview');
@@ -376,14 +376,14 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ],
 
-              if (!isPro) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Upgrade to Pro to access Job',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
-                ),
-              ],
+              // if (!isPro) ...[
+              //   const SizedBox(height: 8),
+              //   Text(
+              //     'Upgrade to Pro to access Job',
+              //     textAlign: TextAlign.center,
+              //     style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+              //   ),
+              // ],
             ],
           ),
         ),

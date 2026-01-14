@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fms/core/services/subscription.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fms/core/constants/variables.dart';
 import '../controller/profile_controller.dart';
 import '../../../nav_bar.dart';
 
@@ -14,11 +16,18 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late final ProfileController _controller;
+  String? _company;
 
   @override
   void initState() {
     super.initState();
     _controller = Get.put(ProfileController());
+
+    // Load company from SharedPreferences (persisted at login)
+    SharedPreferences.getInstance().then((prefs) {
+      final company = prefs.getString(Variables.prefCompany);
+      if (mounted) setState(() => _company = company);
+    });
   }
 
   @override
@@ -42,27 +51,29 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Obx(() {
             final profile = _controller.profile.value;
             final loading = _controller.isLoading.value;
+            debugPrint('Profile Data Content: ${profile?.data?.toJson()}');
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Card(
                   child: ListTile(
+                    // 1. Ensures leading/trailing are vertically centered with the text
+                    isThreeLine: false, 
                     leading: const CircleAvatar(
                       radius: 26,
                       child: Icon(Icons.person),
                     ),
-                    //from api
                     title: Text(
                       loading
                           ? 'Loading...'
                           : (profile?.data?.fullname ?? 'Unknown'),
                     ),
+                    // 2. Using a simple Text widget instead of a Column fixes internal alignment
                     subtitle: Text(
                       loading
                           ? 'Loading...'
                           : (profile?.data?.email ?? 'Unknown'),
                     ),
-                    isThreeLine: true,
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -80,6 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           color: isPro
                               ? Colors.blue.shade700
                               : Colors.grey.shade700,
+                          fontWeight: FontWeight.bold, // Optional: makes the badge pop
                         ),
                       ),
                     ),
@@ -112,8 +124,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 8),
                         Text(
                           isPro
-                              ? 'Pro plan includes map view and vehicle tracking'
-                              : 'Basic plan - upgrade to Pro for map view and vehicle tracking',
+                            ? '${_company ?? "The company"} is subscribed to the Pro plan.'
+                            : '${_company ?? "The company"} is subscribed to the Basic plan.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: Colors.grey.shade600),
                         ),
